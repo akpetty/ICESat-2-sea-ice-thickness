@@ -23,11 +23,11 @@ import dask.array as da
 cF.reset_matplotlib()
 
 
-releaseStr='rel001'
-runStr='run9'
+releaseStr='rel002'
+runStr='run10'
 
 beam='bnum1'
-dayStr='20'
+dayStr='*'
 fNum=-1 # -1== all files
 
 
@@ -37,7 +37,7 @@ var='ice_thickness_NPdist'
 relStr='rel002'
 runStr='run10'
 
-figPath='../../Figures/'
+figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Dists/'
 baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
 dataPath=baseDataPath+'/'+relStr+'/'+runStr+'/raw/'
 concDataPath='/cooler/scratch1/aapetty/Data/ICECONC/CDR/monthly/'
@@ -63,10 +63,10 @@ means=ma.masked_all((size(monStrs), size(ice_type_labels)))
 for m in range(size(monStrs)):
     monStr=monStrs[m]
     dFbeams = cF.getProcessedATL10ShotdataNCDF(dataPath, yearStr=yearStrs[m], monStr=monStrs[m], dayStr=dayStr, fNum=fNum, beamStr=beam)
-    dFbeams=dFbeams.where(dFbeams.seg_length>5, drop=True)
+    dFbeams=dFbeams.where(dFbeams.seg_length>4, drop=True)
     dFbeams=dFbeams.where(dFbeams.seg_length<200, drop=True)
-    #dFbeams=dFbeams.where(dFbeams[var]>0.01, drop=True)
-    dFbeams=dFbeams.where(dFbeams[var]<20, drop=True)
+    dFbeams=dFbeams.where(dFbeams[var]>0.0, drop=True)
+    dFbeams=dFbeams.where(dFbeams[var]<30, drop=True)
     dFbeams=dFbeams.where(~np.isnan(dFbeams[var]), drop=True)
 
     print('Got data')
@@ -110,7 +110,7 @@ for x in range(size(ice_type_labels)):
     ax.annotate('('+chr(97+x)+') '+ice_type_labels[x], xy=(0.98, 0.85), xycoords='axes fraction', horizontalalignment='right', verticalalignment='bottom')
     ax.set_xlim(0, 4)
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(0.5))
-    ax.set_ylim(0, 0.15)
+    #ax.set_ylim(0, 0.15)
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.05))
 
     #ax.grid(which='minor', axis='both')
@@ -143,7 +143,7 @@ for x in range(size(ice_type_labels)):
         
 #plt.tight_layout()
 subplots_adjust(bottom=0.08, left=0.13, right=0.98, top=0.98, hspace = 0.1, wspace=0.1)
-plt.savefig(figPath+'/icetypedistribution_'+labelStr+var+'months.png', dpi=500)
+plt.savefig(figPath+'/icetypedistribution_'+labelStr+var+str(binWidth)+'months.pdf', dpi=300)
 #plt.savefig(figPathM+'/freeboardBeamTest_'+campaignStr+'_F'+str(fileNum)+'shotData.png', dpi=500)
 
 

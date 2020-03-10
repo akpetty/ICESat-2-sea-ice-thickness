@@ -162,11 +162,12 @@ def getThicknessUncertainty(dF, snowDepthVar, snowDensityVar, iceDensityVar, out
 
     rand_uncertainty=array(sqrt(rand_uncertainty_squared))
 
-    snow_depth_unc_sys=dF[['snow_depth_NPdist','snow_depth_W99mod5', 'snow_depth_W99mod7', 'snow_depth_W99mod5r', 'snow_depth_Kdist', 'snow_depth_W99mod5dist']].std(axis=1)
+    snow_depth_unc_sys=dF[['snow_depth_NPdist', 'snow_depth_W99mod5r', 'snow_depth_Kdist', 'snow_depth_W99mod5dist', 'snow_depth_W99mod7dist']].nanstd(axis=1)
+    print('snow depth unc', snow_depth_unc_sys)
     snow_depth_thickness_unc_sys = (snow_depth_unc_sys**2)* \
         ((snow_density-water_density)/(water_density-ice_density))**2
 
-    snow_density_unc_sys=dF[['snow_density_W99','snow_density_W99r', 'snow_density_N']].std(axis=1)
+    snow_density_unc_sys=dF[['snow_density_W99','snow_density_W99r', 'snow_density_N']].nanstd(axis=1)
     snow_density_thickness_unc_sys = (snow_density_unc_sys**2)* \
         (snow_depth/(water_density-ice_density))**2
 
@@ -446,7 +447,7 @@ def getShotVar(dataPathT, yearStr='2018', monStr='*', dayStr='*', fNum=-1, beamS
     return var
 
 
-def getProcessedATL10ShotdataNCDF(dataPathT, yearStr='2018', monStr='*', dayStr='*', fNum=-1, concat=0, ssh_mask=0, minseg=0, maxseg=0, beamStr='gt1r', vars=[], smoothingWindow=0):
+def getProcessedATL10ShotdataNCDF(dataPathT, yearStr='*', monStr='*', dayStr='*', fNum=-1, concat=0, ssh_mask=0, minseg=0, maxseg=0, beamStr='gt1r', vars=[], smoothingWindow=0):
     """
     Load ICESat-2 thickness data produced from the raw ATL10 shot data
         

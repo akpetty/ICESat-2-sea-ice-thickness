@@ -38,24 +38,24 @@ def getIS2(savePathT, outStringT):
     return xptsT, yptsT, thicknessIS2 
 
 
-from config import figPathM
-from config import dataPathIS2
 
-relStr='rel001'
-runStr='run9'
+concDataPath='/cooler/scratch1/aapetty/Data/ICECONC/CDR/monthly/'
+baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
+iceTypePath='/cooler/scratch1/aapetty/Data/ICETYPE/OSISAF/'
 
+relStr='rel002'
+runStr='run10'
 
-savePath=dataPathIS2+relStr+'/'+runStr+'/products/'
-smoothingWindow=50
+figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Maps/'
+savePath=baseDataPath+'/'+relStr+'/'+runStr+'/products/'
+smoothingWindow=400
 resolution=25.
 beamStr='bnum1'
 dayStr='*'
 #dayStr=str(day)
 snowVar='NPdist'
+versionStr='vInt8'
 segment=1
-versionStr='vInt2'
-
-figPath=figPathM+'IS2/'+relStr+'/'+runStr+'/Maps/'
 
 
 years=[2018, 2018, 2019, 2019, 2019, 2019]
@@ -63,6 +63,8 @@ months=[11, 12, 1, 2, 3, 4]
 # DATE INFO
 ice_thicknessIS2s=[]
 dateStrs=[]
+iceconcs=[]
+icetypes=[]
 for x in range(size(years)):
 	mStr='%02d' % (months[x])
 	monLabel=cF.monLabels(months[x]-1)
@@ -74,28 +76,40 @@ for x in range(size(years)):
 	print(labelStr)
 	xptsIS2, yptsIS2,ice_thicknessIS2 = getIS2(savePath, labelStr)
 	ice_thicknessIS2s.append(ice_thicknessIS2)
+	xptsc, yptsc, iceconcT=cF.get_cdr_conc(concDataPath, mapProj, yearStr, mStr)
+	xptst, yptst, icetypeT=cF.getIceTypeRaw(iceTypePath, mapProj, '15', mStr, yearStr, res=1)
 
-minval=-1
-maxval=1
+	iceconcs.append(iceconcT)
+	icetypes.append(icetypeT)
+# add the mean
+#ice_thicknessIS2s.append(np.nanmean(ice_thicknessIS2s, axis=0))
+#dateStrs.append('Winter mean')
+
+minval=0
+maxval=5
 
 fig, axs = plt.subplots(nrows=2, ncols=3, figsize=(7.5, 5.8))
 
 i=0
 for i in range(size(years)):
 	ax=axs.flatten()[i]
-	if i == 5:
-		ax.set_visible(False)
-	else:
-		sca(ax)
-		im1 = mapProj.contourf(xptsIS2 , yptsIS2, ice_thicknessIS2s[i+1]-ice_thicknessIS2s[i], levels=np.arange(minval, maxval+0.1, 0.125), cmap=cm.RdBu_r, vmin=minval, vmax=maxval, extend='both', shading='gouraud', edgecolors='None', zorder=4, rasterized=True)
-		#im1 = mapProj.pcolormesh(xptsIS2 , yptsIS2, ice_thicknessIS2s[i+1]-ice_thicknessIS2s[i], cmap=cm.RdBu_r , vmin=minval, vmax=maxval, shading='gouraud', zorder=4, rasterized=True)
+	#if i == 5:
+	#	ax.set_visible(False)
+	#else:
+	sca(ax)
+	#im1 = mapProj.contourf(xptsIS2 , yptsIS2, ice_thicknessIS2s[i], levels=np.arange(minval, maxval+0.05, 0.5), cmap=cm.viridis , vmin=minval, vmax=maxval,extend='both', shading='gouraud', edgecolors='None', zorder=4, rasterized=True)
+	im1 = mapProj.contourf(xptsIS2 , yptsIS2, ice_thicknessIS2s[i], levels=np.arange(minval, maxval+0.1, 0.25), cmap=cm.cubehelix_r, vmin=minval, vmax=maxval, extend='both', shading='gouraud', edgecolors='None', zorder=4, rasterized=True)
+	# lower colorbar bounds
+	plt.clim(-0.3,5)
+	mapProj.drawparallels(np.arange(90,-90,-10), linewidth = 0.25, zorder=10)
+	mapProj.drawmeridians(np.arange(-180.,180.,30.), linewidth = 0.25, zorder=10)
 
-		mapProj.drawparallels(np.arange(90,-90,-10), linewidth = 0.25, zorder=10)
-		mapProj.drawmeridians(np.arange(-180.,180.,30.), linewidth = 0.25, zorder=10)
-
-		mapProj.fillcontinents(color='0.9',lake_color='grey', zorder=5)
-		mapProj.drawcoastlines(linewidth=0.25, zorder=5)
-		ax.annotate('('+chr(97+i)+') '+dateStrs[i]+' to '+dateStrs[i+1], xy=(0.02, 0.92),xycoords='axes fraction', horizontalalignment='left', verticalalignment='bottom', fontsize=8, zorder=10)
+	mapProj.fillcontinents(color='0.9',lake_color='grey', zorder=5)
+	mapProj.drawcoastlines(linewidth=0.25, zorder=5)
+	ax.annotate('('+chr(97+i)+') '+dateStrs[i], xy=(0.01, 0.935),xycoords='axes fraction', horizontalalignment='left', verticalalignment='bottom', fontsize=8, zorder=10)
+	#im11 = mapProj.contour(xptsc , yptsc, iceconcs[i],levels=0.15, colors='k', linewidths=0.8, zorder=5, alpha=1)
+	im11 = mapProj.contour(xptsc , yptsc, iceconcs[i],levels=0.5, colors='r', linewidths=0.5, zorder=5, alpha=1)
+	im21 = mapProj.contour(xptst , yptst, icetypes[i],levels=0.5, colors='k', linewidths=0.4, zorder=5, alpha=0.7)
 
 	#m.contour(xpts , ypts, region_maskAO, 1, colors='k', linestyles='-',linewidths=0.4, zorder=4)
 	#m.contour(xpts , ypts, region_maskCA, 1, colors='k', linestyles='-',linewidths=0.4, zorder=4)
@@ -108,10 +122,10 @@ for i in range(size(years)):
 cax = fig.add_axes([0.3, 0.08, 0.4, 0.03])
 
 cbar = colorbar(im1,cax=cax, orientation='horizontal', extend='both', use_gridspec=True)
-cbar.set_label('thickness change (m)', labelpad=2)
+cbar.set_label('Sea ice thickness (m)', labelpad=2)
 
-cbar.set_ticks(np.arange(minval, maxval+0.1, 0.5))
+cbar.set_ticks(np.arange(minval, maxval+1, 1))
 
 
 subplots_adjust(bottom=0.12, left=0.01, top = 0.99, right=0.99, wspace=0.02, hspace=0.03)
-savefig(figPath+'/icethickness'+labelStr+str(size(years))+'diff5.png', dpi=300)
+savefig(figPath+'/icethickness'+labelStr+str(size(years))+'.png', dpi=300)

@@ -18,33 +18,46 @@ import sys
 sys.path.append('../')
 import common_functions as cF
 
-from config import figPathM
-from config import dataPathIS2
 
 
 
 releaseStr='rel002'
 runStr='run11'
 
-dataPath=dataPathIS2+releaseStr+'/'+runStr+'/raw/'
-figPath=figPathM+'/IS2/'+releaseStr+'/'+runStr+'/'
 
+#figPath='../../Figures/'
+figPath='/cooler/scratch1/aapetty/Figures/IS2/'+releaseStr+'/'+runStr+'/'
+baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
+dataPath=baseDataPath+'/'+releaseStr+'/'+runStr+'/raw/'
+
+example=2
 #---Kara Sea FYI
-beam='bnum1'
-dayStr='18'
-monStr='11'
-fNum=8
-yearStr='2018'
-sectionNum=201
+if (example==1):
+	beam='bnum1'
+	dayStr='18'
+	monStr='11'
+	fNum=-1
+	yearStr='2018'
+	sectionNum=201
+	lat1=78.5
+	lat2=78.6
+	lon1=87.34
+	lon2=87.44
+
+elif (example==2):
 
 #---- Central Arctic MYI
 
-#beam='bnum1'
-#dayStr='16'
-#monStr='11'
-#fNum=10
-#yearStr='2018'
-#sectionNum=501
+	beam='bnum1'
+	dayStr='16'
+	monStr='11'
+	fNum=-1
+	yearStr='2018'
+	#sectionNum=501
+	lat1=85.7
+	lat2=85.8
+	lon1=176.1
+	lon2=176.4
 
 cols=['freeboard', 'freeboard_sigma', 'ice_type', 'snow_depth_N', 'snow_density_W99', 'snow_depth_NPdist','snow_depth_Kdist', 'snow_density_N', 'ice_thickness_N', 'ice_thickness_NPdist','ice_thickness_Kdist', 'ice_thickness_unc','ice_thickness_uncrandom', 'ice_thickness_uncsys', 'snow_depth_W99mod5', 'snow_depth_W99mod5dist', 'ice_thickness_W99mod5', 'ice_thickness_W99mod5dist', 'ice_thickness_NPdistrho2']
 #cols = vars.copy()
@@ -62,8 +75,15 @@ print(cols)
 IS2data = cF.getProcessedATL10ShotdataNCDF(dataPath, 
 		yearStr=yearStr, monStr=monStr, dayStr=dayStr, fNum=fNum, beamStr=beam, vars=cols)
 
+#DO THIS WHERE LON LAT WITHIN BOUNDS OF THE EXAMPLE I HAD BEFORE!!
 
-IS2data=IS2data.isel(index=xr.DataArray(np.arange(sectionNum*200, (sectionNum*200)+200), dims=['index']))
+#IS2data=IS2data.isel(index=xr.DataArray(np.arange(sectionNum*200, (sectionNum*200)+200), dims=['index']))
+
+IS2data=IS2data.where(((IS2data['lat']>lat1)&(IS2data['lat']<lat2)), drop=True)
+IS2data=IS2data.where(((IS2data['lon']>lon1)&(IS2data['lon']<lon2)), drop=True)
+#IS2data=IS2data.where(((IS2data['lat']>176.1)&(IS2data['lat']<176.2)), drop=True)
+
+#IS2data=IS2data.isel(index=xr.DataArray(np.arange(sectionNum*200, (sectionNum*200)+200), dims=['index']))
 
 #uncertainity=IS2data[['ice_thickness_NPdist', 'ice_thickness_Kdist', 'ice_thickness_NPdistrho2', 'ice_thickness_W99mod5dist']].to_dataframe().std(axis=1)
 
@@ -169,7 +189,7 @@ for ax in axs.flatten():
 ax1.annotate(titleStr, xy=(0.01, 1.01), xycoords='axes fraction', horizontalalignment='middle', verticalalignment='bottom')
 
 subplots_adjust(left = 0.07, right = 0.98, bottom=0.07, top = 0.96, hspace=0.18)
-plt.savefig(figPath+'/ts4'+labelStr+runStr+'_F'+str(fNum)+str(sectionNum)+'shotDatav2.png', dpi=500)
+plt.savefig(figPath+'/ts4'+labelStr+runStr+'_F'+str(fNum)+'eg'+str(example)+'shotDatav3.png', dpi=500)
 #plt.savefig(figPathM+'/ts4'+campaignStr+'_F'+str(fileNum)+'shotData.pdf')
 #plt.savefig(figPathM+'/ts3'+labelStr+runStr+'_F'+str(fNum)+'shotData.png', dpi=500)
 #fig.show()

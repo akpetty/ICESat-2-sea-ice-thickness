@@ -38,25 +38,23 @@ def getIS2(savePathT, outStringT, var=''):
     return xptsT, yptsT, thicknessIS2 
 
 
-from config import figPathM
-from config import dataPathIS2
+concDataPath='/cooler/scratch1/aapetty/Data/ICECONC/CDR/monthly/'
+baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
+iceTypePath='/cooler/scratch1/aapetty/Data/ICETYPE/OSISAF/'
 
-relStr='rel001'
-runStr='run9'
+relStr='rel002'
+runStr='run11'
 
-
-savePath=dataPathIS2+'/'+relStr+'/'+runStr+'/products/'
-smoothingWindow=50
+figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Maps/'
+savePath=baseDataPath+'/'+relStr+'/'+runStr+'/products/'
+smoothingWindow=400
 resolution=25.
 beamStr='bnum1'
 dayStr='*'
 #dayStr=str(day)
 snowVar='NPdist'
-versionStr='vInt2'
+versionStr='vInt8'
 segment=1
-
-
-figPath=figPathM+'IS2/'+relStr+'/'+runStr+'/Maps/'
 
 
 years=[2018, 2018, 2019, 2019, 2019, 2019]
@@ -78,7 +76,7 @@ for x in range(size(years)):
 	xptsIS2, yptsIS2,ice_thicknessIS2 = getIS2(savePath, labelStr, var='ice_thickness')
 	ice_thicknessIS2s.append(ice_thicknessIS2)
 
-	_, _,ice_thickness_uncIS2 = getIS2(savePath, labelStr, var='thickness_uncertainty')
+	_, _,ice_thickness_uncIS2 = getIS2(savePath, labelStr, var='ice_thickness_unc')
 	ice_thickness_uncIS2s.append(ice_thickness_uncIS2)
 	ice_thickness_unc_percentIS2s.append(100*ice_thickness_uncIS2/ice_thicknessIS2)
 
@@ -133,7 +131,7 @@ savefig(figPath+'/icethickness'+labelStr+str(size(years))+'unc.png', dpi=300)
 
 
 minval=0
-maxval=100
+maxval=150
 fig, axs = plt.subplots(nrows=2, ncols=3, figsize=(7.5, 5.8))
 
 i=0

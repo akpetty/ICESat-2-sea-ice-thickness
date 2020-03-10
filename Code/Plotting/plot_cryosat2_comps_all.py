@@ -64,7 +64,7 @@ def getCS2jpl(dataPathCS2, yearStr, mStr):
 	lonsCS=lonsCS[135:-113, 53:-51]
 	latsCS=latsCS[135:-113, 53:-51]
 
-	mon1=loadtxt(dataPathCS2+'JPL/montha_'+mStr+'.txt')
+	mon1=loadtxt(dataPathCS2+'JPL/month_'+mStr+'.txt')
 	thicknessCS=np.flip(mon1, axis=0) 
 
 	xptsT, yptsT = mapProj(lonsCS, latsCS)
@@ -101,10 +101,8 @@ mapProj = Basemap(epsg=3411,resolution='l', llcrnrlon=279.26, llcrnrlat=48., urc
 
 def main(CS2PRODUCT, month):
 	
-	from config import dataPathCS2
-	from config import figPathM
-	#from config import snowPath
-	from config import dataPathIS2
+	dataPathIS2='/cooler/scratch1/aapetty/DataOutput/IS2/'
+	dataPathCS2='/cooler/scratch1/aapetty/Data/CS2/'
 
 	if (month<7):
 		year=2019
@@ -133,24 +131,23 @@ def main(CS2PRODUCT, month):
 
 	#ice_thicknessCS2=ice_thicknessCS2-0.4
 
-	relStr='rel001'
-	runStr='run9'
+	relStr='rel002'
+	runStr='run10'
 
-	figPathM=figPathM+'/IS2/'+relStr+'/'+runStr+'/Maps/'
-
+	figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Maps/'
 
 	beamStr='bnum1'
 
 	savePath=dataPathIS2+'/'+relStr+'/'+runStr+'/products/'
-	smoothingWindow=50
+	smoothingWindow=400
 	resolution=25.
 
 	dayStr='*'
 
 	segment=1
-	versionStr='vInt2'
+	versionStr='vInt8'
 
-	snowVar='NPdist'
+	#snowVar='NPdist'
 	labelStr=runStr+'-'+beamStr+'-'+yearStr+monLabel+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr
 
 
@@ -167,7 +164,7 @@ def main(CS2PRODUCT, month):
 	ice_thicknessIS2=ma.masked_where(~np.isfinite(ice_thicknessCS2G), ice_thicknessIS2)
 	ice_thicknessIS2=ma.masked_where(~np.isfinite(ice_thicknessIS2), ice_thicknessIS2)
 
-	region_mask, xptsI, yptsI = cF.get_region_mask_sect('../../../AncData/', mapProj, xypts_return=1)
+	region_mask, xptsI, yptsI = cF.get_region_mask_sect('../../AncData/', mapProj, xypts_return=1)
 	regions=[10, 11, 12, 13, 15]
 	ice_thicknessIS2=ma.masked_where(~np.isin(region_mask, regions), ice_thicknessIS2)
 	ice_thicknessCS2G=ma.masked_where(~np.isin(region_mask, regions), ice_thicknessCS2G)
@@ -273,14 +270,14 @@ def main(CS2PRODUCT, month):
 	ax4.set_xlim(0, 5)
 	ax4.set_ylim(0, 5)
 
-	fig.savefig(figPathM+'/thicknessComp_'+labelStr+runStr+'CS2IS2corr4'+CS2PRODUCT+'3NP.pdf', dpi=500)
+	fig.savefig(figPath+'/thicknessComp_'+labelStr+runStr+'CS2IS2corr4'+CS2PRODUCT+'3NP.png', dpi=300)
 
 
 if __name__ == '__main__':
-	months=[4]
+	#months=[11]
 	#for month in months:
 	#	main('GSFC', month)
-	products=[ 'CPOM', 'JPL']
+	products=[ 'CPOM', 'JPL', 'AWI', 'GSFC']
 	for product in products:
 		for month in months:
 			main(product, month)

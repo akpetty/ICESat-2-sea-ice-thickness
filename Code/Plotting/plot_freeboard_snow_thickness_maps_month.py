@@ -33,11 +33,11 @@ iceTypePath='/cooler/scratch1/aapetty/Data/ICETYPE/OSISAF/'
 
 beams=['bnum1']
 dayStr='*'
-month=4
+month=12
 monStr='%02d' %(month)
 
 fNum=-1 #-1=all
-yearStr='2019'
+yearStr='2018'
 
 
 cols=['freeboard','snow_depth_NPdist','ice_thickness_NPdist']
@@ -46,7 +46,7 @@ cols.append('lon')
 cols.append('ssh_flag')
 
 
-IS2data = cF.getProcessedATL10ShotdataNCDF(dataPath, vars=cols, yearStr=yearStr, ssh_mask=1, monStr=monStr, dayStr=dayStr, fNum=fNum, beamStr=beams[0])
+IS2data = cF.getProcessedATL10ShotdataNCDF(dataPath, vars=cols, yearStr=yearStr, ssh_mask=0, monStr=monStr, dayStr=dayStr, fNum=fNum, beamStr=beams[0])
 
 
 m = Basemap(projection='npstere',boundinglat=60,lon_0=0, resolution='l' , round=False)
@@ -136,7 +136,7 @@ cbar3.set_ticks(np.arange(0, vmaxs[2]+0.1, 1))
 
 subplots_adjust(bottom=0.18, left=0.01, top = 0.98, right=0.99, wspace=0.02, hspace=0.2)
 
-fig.savefig(figPath+'/map3_'+cols[-4]+labelStr+runStr+'sshm.png', dpi=300)
+fig.savefig(figPath+'/map3_'+cols[-4]+labelStr+runStr+'.png', dpi=300)
 
 
 

@@ -1,13 +1,16 @@
-""" BatchProcessATL10.py
+""" batch_process_icesat2.py
 	
 	Processing sea ice thickness with ICESat-2 freeboards
 	Initial code written by Alek Petty (01/06/2019)
 	
 	Input:
-		ICESat-2 freeboards, NESOSIM snow depths/densities, OSISAF ice type
+		ICESat-2 ATL10 freeboards
+		NESOSIM snow depths/densities
+		OSISAF ice type
+
 
 	Output:
-		Ice thickness using various snow depth assumptions.
+		Ice thickness using various snow depth assumptions in netCDF (xarray) format.
 
 	Python dependencies:
 		See below for the relevant module imports. Of note:
@@ -15,33 +18,26 @@
 		netCDF4
 		matplotlib
 		basemap
-
-	GSFC: W99mod5 snow depth/density, 915 kg/m3 ice density
-	CPOM: regional mean W99mod5, 882, 917 kg/m3 ice density
-	JPL: W99mod5 (bus using ice type fraction), 
-	AWI: W99mod5, 882, 917 kg/m3 ice density
-	Petty: NESOSIM distributed, 899 MYI, 916 
-
-		More information on installation is given in the README file.
+		common_functions function library
+		Optional (for naive parralel processing):
+			itertools
+			concurrent.futures
+	More information on installation is given in the README file.
 
 	Update history:
 		01/06/2019: Version 1.
     
 """
 
-import matplotlib, sys
-matplotlib.use('Agg')
+#import matplotlib, sys
+#matplotlib.use('Agg')
 from mpl_toolkits.basemap import Basemap
 import numpy as np
-from pylab import *
 import numpy.ma as ma
 import xarray as xr
 import pandas as pd
 import os
 from glob import glob
-import netCDF4 as nc4
-from scipy.interpolate import griddata
-from netCDF4 import Dataset
 import time
 import common_functions as cF
 
@@ -52,40 +48,42 @@ import concurrent.futures
 def main(fileT, beamNum):
 	""" Main ICESat-2 processing module 
 	
-	Convert the ATL10 shot freeboard data to ice thickness using various snow loading input estimates
-	
+	Convert the ATL10 segment freeboard data to ice thickness using various input assumptions
 	
 	Args:
 		fileT (str): the ATL10 file path
-		beamNum (int): ATLAS beam number from 1 to 6
+		beamNum (int): ATLAS beam number from 1 to 6 - 1, 3, 5 (2, 4, 6) are always strong (weak) beams.
 
 	"""
 
 	#====================== Configuration ========================
+	# NPdist: NESOSIM snow depth/density, piecewise redistributed, 915 kg/m3 ice density
+	# GSFC: W99mod5 snow depth/density, 915 kg/m3 ice density
+	# CPOM: regional mean W99mod5, 882, 917 kg/m3 ice density
+	# JPL: W99mod5 (bus using ice type fraction), 
+	# AWI: W99mod5, 882, 917 kg/m3 ice density
 
 	regionflags=1
 	icetype=1
 	warrensnow=1
 	modwarrensnow5=1
 	modwarrensnow5rho2=0
-	modwarrensnow7=0
+	modwarrensnow7=1
 	nesosim=1
 	nesosimdisttributed=1
-	nesosimdisttributedold=0
 	nesosimdisttributedrho2=1
-	nesosimdisttributedrho1=1
-
+	nesosimdisttributedrho3=1
 	nesosimdisttributedkwok=1
-	nesosimdisttributedpetty=0
 	
 	modwarrendisttributed=1
+	modwarren7disttributed=1
 	modwarrensnow5distributedrho3=1
 	cpomprocessing=1
 	nasaprocessing=1
 	awiprocessing=1
 	uncertaintycalc=1
 	# uncertainity calc needs the distributed nesosim (or select another primary thickness variable)
-	savedata=0
+	saveRaw=0
 	saveNetCDFX=1
 	
 	
@@ -104,8 +102,6 @@ def main(fileT, beamNum):
 		print('Bad file')
 		return
 
-	beamStr=dF['beamStr'][0]
-	print(beamStr)
 
 	if (dF.shape[0]<10):
 		# If file had no good freeboard data break
@@ -113,6 +109,9 @@ def main(fileT, beamNum):
 		return
 	print ('Got good ATL10 freeboard data in '+str(np.round((time.time()-start), 2))+' seconds')
 	
+	beamStr=dF['beamStr'][0]
+	print(beamStr)
+
 	# ----- Region flags -------
 	if (regionflags==1):
 		print ('Assign NSIDC region mask...')
@@ -187,6 +186,13 @@ def main(fileT, beamNum):
 		start = time.time()
 		print ('Processing distributed mod Warren snow depths...')
 		dF = cF.distributeSnow(dF, inputSnowDepth='snow_depth_W99mod5', outSnowVar='snow_depth_W99mod5dist', consIterations=11, gridSize=100000)
+		dF = cF.distributeSnow(dF, inputSnowDepth='snow_depth_W99mod5r', outSnowVar='snow_depth_W99mod5rdist', consIterations=11, gridSize=100000)
+		print ('Processed distributed mod Warren snow depths in '+str(np.round((time.time()-start), 2))+' seconds')
+		#dF.head(3)
+	if (modwarren7disttributed==1):
+		start = time.time()
+		print ('Processing distributed mod Warren snow depths...')
+		dF = cF.distributeSnow(dF, inputSnowDepth='snow_depth_W99mod7', outSnowVar='snow_depth_W99mod7dist', consIterations=11, gridSize=100000)
 		print ('Processed distributed mod Warren snow depths in '+str(np.round((time.time()-start), 2))+' seconds')
 		#dF.head(3)
 
@@ -202,13 +208,6 @@ def main(fileT, beamNum):
 		print ('Processing kwok distributed NESOSIM snow depths...')
 		dF = cF.distributeSnowKwok(dF, inputSnowDepth='snow_depth_N', outSnowVar='snow_depth_Kdist')
 		print ('Processed kwok distributed NESOSIM snow depths in '+str(np.round((time.time()-start), 2))+' seconds')
-		#dF.head(3)
-
-	if (nesosimdisttributedpetty==1):
-		start = time.time()
-		print ('Processing petty distributed NESOSIM snow depths...')
-		dF = cF.distributeSnow(dF, inputSnowDepth='snow_depth_N', outSnowVar='snow_depth_Pdist', version='V4')
-		print ('Processed petty distributed NESOSIM snow depths in '+str(np.round((time.time()-start), 2))+' seconds')
 		#dF.head(3)
 		
 	#-------Thickness conversion-----------
@@ -239,7 +238,7 @@ def main(fileT, beamNum):
 		# Convert freeboard to thickness using distributed NESOSIM data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_NPdist', snowDensityVar='snow_density_N', outVar='ice_thickness_NPdistrho2', rhoi=2)
 
-	if (nesosimdisttributedrho1==1):
+	if (nesosimdisttributedrho3==1):
 		# Convert freeboard to thickness using distributed NESOSIM data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_NPdist', snowDensityVar='snow_density_N', outVar='ice_thickness_NPdistrho3', rhoi=3)
 		
@@ -259,7 +258,10 @@ def main(fileT, beamNum):
 	if (modwarrendisttributed==1):
 		#print ('Converting freeboards to thickness 3..')
 		# Convert freeboard to thickness using distributed NESOSIM data
-		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5dist', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod5dist', rhoi=3)
+		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5dist', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod5dist', rhoi=1)
+		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5rdist', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod5rdist', rhoi=1)
+		
+
 		#dF.head(3)
 		#print ('Converted freeboards to thickness in '+str(np.round((time.time()-start), 2))+' seconds')
 	if (modwarrensnow5distributedrho3==1):	
@@ -290,7 +292,7 @@ def main(fileT, beamNum):
 	#plotMap4(dF, mapProj, figPath, dateStr+'_F'+str(fileNum)+'NKdist', vars=['freeboard', 'snowDepthNKdist', 'snowDensityNK', 'iceThicknessNKdist'])
 
 	#-------Output-----------
-	if (savedata==1):
+	if (saveRaw==1):
 		outStr=fileT.split("/")[-1][:-3]
 		print ('Saving data file to:', dataOutPath+'IS2'+outStr+'_bnum'+str(beamNum)+beamStr)
 		dF.to_pickle(dataOutPath+'IS2'+outStr+'_bnum'+str(beamNum)+beamStr)
@@ -305,18 +307,18 @@ def main(fileT, beamNum):
 if __name__ == '__main__':
 	
 	iceTypePath='/cooler/scratch1/aapetty/Data/ICETYPE/OSISAF/'
-	snowPath='/cooler/scratch1/aapetty/Data/NESOSIM/OSISAFsig150_ERAI_sf_SICCDR_Rhovariable_IC4_DYN1_WP1_LL1_WPF5.8e-07_WPT5_LLF2.9e-07-100kmnrt4v2/final/'
+	snowPath='/cooler/scratch1/aapetty/Data/NESOSIM/OSISAFsig150_ERAI_sf_SICCDR_Rhovariable_IC4_DYN1_WP1_LL1_WPF5.8e-07_WPT5_LLF2.9e-07-100kmv56/final/'
 	dataOutPathM='/cooler/scratch1/aapetty/DataOutput/IS2/'
 	figPathM='/cooler/scratch1/aapetty/Figures/IS2/'
 	ancDataPath='../AncData/'
 	
 	releaseStr='rel002'
-	runStr='run11'
+	runStr='run12'
 
 	ATL10path='/cooler/I2-ASAS/'+releaseStr+'/ATL10-01/'
 
-	# ATL10 dates to process
-	dateStr='201811' 
+	# Dates to process
+	#dateStr='2019*[01-04]' 
 
 	global figPath, dataOutPath
 	figPath=figPathM+releaseStr+'/'+runStr+'/'
@@ -327,11 +329,15 @@ if __name__ == '__main__':
 		os.makedirs(figPath)
 	
 	#The -01 is for Northern Hemisphere datafiles (-02 is for Southern Hemisphere)
-	ATL10files = glob(ATL10path+'/ATL10-01_'+dateStr+'*.h5')
-	print('ATL10 files:', ATL10path+'/ATL10-01_'+dateStr+'*.h5')
+	ATL10files1 = glob(ATL10path+'/ATL10-01_201901*.h5')
+	ATL10files2 = glob(ATL10path+'/ATL10-01_201902*.h5')
+	ATL10files3 = glob(ATL10path+'/ATL10-01_201903*.h5')
+	ATL10files4 = glob(ATL10path+'/ATL10-01_201904*.h5')
+	ATL10files=ATL10files1+ATL10files2+ATL10files3+ATL10files4
+	#print('ATL10 files:', ATL10path+'/ATL10-01_'+dateStr+'*.h5')
 	print('ATL10 release:',releaseStr)
 	print('Processing run:',runStr)
-	print('Number of ATL10 files: '+str(size(ATL10files)))
+	print('Number of ATL10 files: '+str(np.size(ATL10files)))
 	print(ATL10files)
 
 
@@ -341,7 +347,7 @@ if __name__ == '__main__':
 	#for ATL10file in ATL10files:
 	#	main(ATL10file, beamNums[0])
 	
-	with concurrent.futures.ProcessPoolExecutor(max_workers=30) as executor:
+	with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
 
 		# args=((campaign, beam) for beam in beams)
 		# print(args)
