@@ -67,7 +67,6 @@ def main(fileT, beamNum):
 	icetype=1
 	warrensnow=1
 	modwarrensnow5=1
-	modwarrensnow5rho2=0
 	modwarrensnow7=1
 	nesosim=1
 	nesosimdisttributed=1
@@ -175,23 +174,12 @@ def main(fileT, beamNum):
 		print ('Processed NESOSIM snow depths in '+str(np.round((time.time()-start), 2))+' seconds')
 		#dF.head(3)
 	#------- Get distributed NESOSIM snow depths -----------
-	if (nesosimdisttributedold==1):
-		start = time.time()
-		print ('Processing distributed NESOSIM snow depths...')
-		dF = cF.gridNESOSIMtoFreeboardV3(dF, mapProj, fileNESOSIM, dateStr, outSnowVar='snow_depth_NPdist', consIterations=11, gridSize=100000)
-		print ('Processed distributed NESOSIM snow depths in '+str(np.round((time.time()-start), 2))+' seconds')
-		#dF.head(3)
 
 	if (modwarrendisttributed==1):
 		start = time.time()
 		print ('Processing distributed mod Warren snow depths...')
 		dF = cF.distributeSnow(dF, inputSnowDepth='snow_depth_W99mod5', outSnowVar='snow_depth_W99mod5dist', consIterations=11, gridSize=100000)
 		dF = cF.distributeSnow(dF, inputSnowDepth='snow_depth_W99mod5r', outSnowVar='snow_depth_W99mod5rdist', consIterations=11, gridSize=100000)
-		print ('Processed distributed mod Warren snow depths in '+str(np.round((time.time()-start), 2))+' seconds')
-		#dF.head(3)
-	if (modwarren7disttributed==1):
-		start = time.time()
-		print ('Processing distributed mod Warren snow depths...')
 		dF = cF.distributeSnow(dF, inputSnowDepth='snow_depth_W99mod7', outSnowVar='snow_depth_W99mod7dist', consIterations=11, gridSize=100000)
 		print ('Processed distributed mod Warren snow depths in '+str(np.round((time.time()-start), 2))+' seconds')
 		#dF.head(3)
@@ -260,7 +248,8 @@ def main(fileT, beamNum):
 		# Convert freeboard to thickness using distributed NESOSIM data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5dist', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod5dist', rhoi=1)
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5rdist', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod5rdist', rhoi=1)
-		
+		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod7dist', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod7dist', rhoi=1)
+				
 
 		#dF.head(3)
 		#print ('Converted freeboards to thickness in '+str(np.round((time.time()-start), 2))+' seconds')
@@ -329,11 +318,12 @@ if __name__ == '__main__':
 		os.makedirs(figPath)
 	
 	#The -01 is for Northern Hemisphere datafiles (-02 is for Southern Hemisphere)
+	ATL10files0 = glob(ATL10path+'/ATL10-01_2018*.h5')
 	ATL10files1 = glob(ATL10path+'/ATL10-01_201901*.h5')
 	ATL10files2 = glob(ATL10path+'/ATL10-01_201902*.h5')
 	ATL10files3 = glob(ATL10path+'/ATL10-01_201903*.h5')
 	ATL10files4 = glob(ATL10path+'/ATL10-01_201904*.h5')
-	ATL10files=ATL10files1+ATL10files2+ATL10files3+ATL10files4
+	ATL10files=ATL10files0+ATL10files1+ATL10files2+ATL10files3+ATL10files4
 	#print('ATL10 files:', ATL10path+'/ATL10-01_'+dateStr+'*.h5')
 	print('ATL10 release:',releaseStr)
 	print('Processing run:',runStr)
@@ -347,7 +337,7 @@ if __name__ == '__main__':
 	#for ATL10file in ATL10files:
 	#	main(ATL10file, beamNums[0])
 	
-	with concurrent.futures.ProcessPoolExecutor(max_workers=20) as executor:
+	with concurrent.futures.ProcessPoolExecutor(max_workers=40) as executor:
 
 		# args=((campaign, beam) for beam in beams)
 		# print(args)

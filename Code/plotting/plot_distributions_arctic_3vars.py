@@ -53,7 +53,7 @@ def get_hists(yearStr, monStr, varT, binVals, binWidth, maxValue):
         return histValsT, meansT
 
 releaseStr='rel002'
-runStr='run10'
+runStr='run12'
 
 beam='bnum1'
 dayStr='*'
@@ -124,11 +124,6 @@ for x in range(3):
         leg = ax.legend(loc=1, ncol=2,handlelength=1.5, labelspacing=0.2 , numpoints=1, frameon=False)
         ax.set_xlim(0, maxValues[x])
 
-
-    #ax.xaxis.set_major_locator(ticker.MultipleLocator(0.5))  
-    #ax.yaxis.set_major_locator(ticker.MultipleLocator(0.025))
-
-    #ax.grid(which='major', axis='both', linestyle='--')
 
     ax.set_xlabel(varStrs[x]+' (m)')
     #if (x==1):

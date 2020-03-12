@@ -52,14 +52,6 @@ def getIS1gridded(savePathT, outStringT, mapProj,poleHole=85.5):
 
 def getCS2gsfc(yearStr, mStr):
 
-    #
-    #try:
-    #   f = Dataset(dataPathCS2+'/'+yearStr+'/RDEFT4_'+yearStr+mStr+'15', 'r')
-    #else:
-    #   f = Dataset(dataPathCS2+'/'+yearStr+'/RDEFT4_'+yearStr+mStr+'14', 'r')
-    #except:
-    #   ('No file')
-
     f = Dataset(dataPathCS2+'/'+yearStr+'/RDEFT4_'+yearStr+mStr+'15.nc', 'r')
     thicknessCS = f.variables['sea_ice_thickness'][:]
     thicknessCS=ma.masked_where(thicknessCS<0, thicknessCS)
@@ -72,7 +64,6 @@ def getCS2gsfc(yearStr, mStr):
 
     xptsT, yptsT = mapProj(lonsCS, latsCS)
 
-    #files = glob(dataPath+ystr+mstr+'*')
     return xptsT, yptsT, thicknessCS
     
     
@@ -162,12 +153,13 @@ def getThicknessUncertainty(dF, snowDepthVar, snowDensityVar, iceDensityVar, out
 
     rand_uncertainty=array(sqrt(rand_uncertainty_squared))
 
-    snow_depth_unc_sys=dF[['snow_depth_NPdist', 'snow_depth_W99mod5r', 'snow_depth_Kdist', 'snow_depth_W99mod5dist', 'snow_depth_W99mod7dist']].nanstd(axis=1)
+    snow_depth_unc_sys=dF[['snow_depth_NPdist', 'snow_depth_W99mod5rdist', 'snow_depth_Kdist', 'snow_depth_W99mod5dist', 'snow_depth_W99mod7dist']].std(axis=1)
+    print(dF.head())
     print('snow depth unc', snow_depth_unc_sys)
     snow_depth_thickness_unc_sys = (snow_depth_unc_sys**2)* \
         ((snow_density-water_density)/(water_density-ice_density))**2
 
-    snow_density_unc_sys=dF[['snow_density_W99','snow_density_W99r', 'snow_density_N']].nanstd(axis=1)
+    snow_density_unc_sys=dF[['snow_density_W99','snow_density_W99r', 'snow_density_N']].std(axis=1)
     snow_density_thickness_unc_sys = (snow_density_unc_sys**2)* \
         (snow_depth/(water_density-ice_density))**2
 
@@ -189,64 +181,6 @@ def getThicknessUncertainty(dF, snowDepthVar, snowDensityVar, iceDensityVar, out
    
     return dF
 
-    
-def getThicknessUncertaintyOld(dF, snowDepthVar, snowDensityVar, iceDensityVar, outVar):
-    """ Grid using nearest neighbour the NESOSIM snow depths to the high-res ICESat-1 freeboard locations"""
-    
-    # Convert freeboard to thickness
-    # Need to copy arrays or it will overwrite the pandas column!
-    freeboard=np.copy(dF['freeboard'].values)
-
-    
-    snow_depth=np.copy(dF[snowDepthVar].values)
-    snow_density=np.copy(dF[snowDensityVar].values)
-    ice_density=np.copy(dF[iceDensityVar].values)
-    
-    # Define density values
-    water_density=1024.
-    #ice_density=915.
-
-    # Add 0.02 to represent precision estimated over flat surfaces
-    freeboard_unc=np.copy(dF['freeboard_sigma'].values)+0.02
-    #freeboard_unc=0.1*freeboard
-    snow_depth_unc=0.05
-    snow_density_unc=40
-
-    water_density_unc=0.5
-    ice_density_unc=10.
-
-    freeboard_thickness_unc = (freeboard_unc**2)* \
-        (water_density/(water_density-ice_density))**2
-    
-    snow_depth_thickness_unc = (snow_depth_unc**2)* \
-        ((snow_density-water_density)/(water_density-ice_density))**2
-    
-    snow_density_thickness_unc = (snow_density_unc**2)* \
-        (snow_depth/(water_density-ice_density))**2
-    
-    water_density_thickness_unc = (water_density_unc**2)* \
-        (((freeboard-snow_depth)/(water_density-ice_density))+
-                                    (((snow_depth*water_density)-(freeboard*water_density)-(snow_depth*snow_density))/(water_density-ice_density)**2))**2
-    
-    ice_density_thickness_unc = (ice_density_unc**2)* \
-        (((freeboard*water_density)+(snow_depth*snow_density)-(snow_depth*water_density))/(water_density-ice_density)**2)**2
-
-    # Dropped water density uncertainity as negligible
-    rand_uncertainty_squared = (freeboard_thickness_unc+ \
-                            snow_depth_thickness_unc + \
-                            snow_density_thickness_unc + \
-                            ice_density_thickness_unc)
-
-
-    rand_uncertainty=array(sqrt(rand_uncertainty_squared))
-    sys_uncertainty=dF[['ice_thickness_NPdist', 'ice_thickness_Kdist', 'ice_thickness_NPdistrho2',  'ice_thickness_NPdistrho3', 'ice_thickness_W99mod5dist', 'ice_thickness_W99mod5distrho2', 'ice_thickness_awi', 'ice_thickness_nasa', 'ice_thickness_cpom']].std(axis=1)
-    
-    dF['freeboard_unc'] = pd.Series(freeboard_unc, index=dF.index)
-    dF[outVar+'random'] = pd.Series(rand_uncertainty, index=dF.index)
-    dF[outVar+'sys'] = pd.Series(sys_uncertainty, index=dF.index)
-    dF[outVar] = pd.Series(sqrt((rand_uncertainty**2)+(sys_uncertainty**2)), index=dF.index)
-   
-    return dF
 
 def getATL10FreeboardShotData(fileT, mapProj, beamNum=1, hem='nh'):
     """
@@ -345,51 +279,6 @@ def getATL10FreeboardShotData(fileT, mapProj, beamNum=1, hem='nh'):
     
     return dF, fileStr
 
-def getATL10FreeboardSwathData(fileT, mapProj):
-    """
-    Load ATL10 freeboard swath data (~10 km swath average across all beams) 
-    # Store in a Pandas dataframe
-
-    Args:
-        freeboardFileT (file): file path of ICESat freeboard data
-        mapProj (basemap instance): basemap map projection
-    Returns:
-        dF (var): Dataframe containing freeboard, year, month, day, lon, lat, x, y
-
-    I think the dates are indexed starting from 1 - i.e. month of 1 = January 
-        
-    """
-
-    f1 = h5py.File(fileT, 'r')
-    freeboard=f1['freeboard_swath_segment']['fbswath_fb_height'][:]
-    lons=f1['freeboard_swath_segment']['longitude'][:]
-    lats=f1['freeboard_swath_segment']['latitude'][:]
-    deltaTime=f1['freeboard_swath_segment']['delta_time'][:]
-
-    dF = pd.DataFrame({'freeboard':freeboard, 'lon':lons, 'lat':lats, 'delta_time':deltaTime})
-    dF = dF[(dF['freeboard']>0)]
-    dF = dF[(dF['freeboard']<10)]
-
-    # Reset row indexing
-    dF=dF.reset_index(drop=True)
-
-    print(fileT)
-    fileStr=fileT.split("/ATL10_")[-1]
-    print(fileStr)
-    dF['year'] = int(fileStr[0:4])
-    dF['month'] = int(fileStr[4:6])
-    dF['day'] = int(fileStr[6:8])
-
-    print('Year:', fileStr[0:4], 'Month:', fileStr[4:6], 'Day:', fileStr[6:8])
-    
-
-    xpts, ypts=mapProj(dF['lon'].values, dF['lat'].values)
-
-    dF['xpts'] = pd.Series(xpts, index=dF.index)
-    dF['ypts'] = pd.Series(ypts, index=dF.index)
-    
-
-    return dF
 
 def getProcessedATL10Shotdata(dataOutPathM, runStrT, campaignStrT, cols, yearStr='2018', monStr='*', dayStr='*', fNum=-1, beamStr='gt1r'):
     """
@@ -602,43 +491,6 @@ def getProcessedIS1(dataPathT, campaignStr, vars=[], fNum=-1, smoothingWindow=0)
 
         return IS1dataAll
 
-def getProcessedATL10ShotdataDask(dataOutPathM, runStrT, campaignStrT, yearStr='2018', monStr='*', dayStr='*', fNumStr='*', beamStr='gt1r', cols=['freeboard', 'shot']):
-    """
-    Load ICESat-2 thickness data produced from the raw ATL10 shot data
-        
-    """
-    files=glob(dataOutPathM+runStrT+'/'+campaignStrT+'/IS2ATL10*'+yearStr+monStr+dayStr+fNumStr+'_'+beamStr)
-    print(dataOutPathM+runStrT+'/'+campaignStrT+'/IS2ATL10*'+yearStr+monStr+dayStr+fNumStr+'_'+beamStr)
-    print('Number of files:', size(files))
-    x=0
-    if size(files)>1:
-        IS2dataAll = pd.read_pickle(files[0])
-        IS2dataAll=IS2dataAll[cols]
-        IS2dataAllDask = dd.from_pandas(IS2dataAll, npartitions=1)
-        for file in files[1:]:
-            IS2dataT = pd.read_pickle(file)
-            IS2dataT=IS2dataT[cols]
-            #print('pandas')
-            #print(IS2dataT.head(3))
-            IS2dataTDask = dd.from_pandas(IS2dataT, npartitions=1)
-            #print('dask')
-            #print(IS2dataTDask.head(3))
-            #data=[]'
-            IS2dataAllDask = dd.concat([IS2dataAllDask, IS2dataTDask], axis=0,interleave_partitions=True)
-            #IS2dataAll = pd.concat([IS2dataT, IS2dataAll])
-            print ('File:', str(x)+'/'+str(size(files)))
-            x+=1
-        IS2dataAllDask=IS2dataAllDask.reset_index(drop=True)
-
-        return IS2dataAllDask
-    elif size(files)==1:
-        print('Only 1 file')
-        IS2dataAll = pd.read_pickle(files[0], usecols=cols)
-        IS2dataAllDask = dd.from_pandas(IS2dataAll, npartitions=1)
-        return IS2dataAllDask
-    else:
-        print('No files')
-        return
 
 def reset_matplotlib():
     """
@@ -929,246 +781,6 @@ def get_psnlatslons(data_path, res=25):
 
     return lats_mask, lons_mask
 
-def gridNESOSIMtoFreeboardV2(dF, mapProj, fileSnow, dateStr, outSnowVar='snowDepthN', outDensityVar='snowDensityN', numShots=600):
-    """
-    Load relevant NESOSIM snow data file and assign to freeboard values using Nathan's snow distribution method
-
-    Args:
-        dF (data frame): Pandas dataframe
-        mapProj (basemap instance): Basemap map projection
-        fileSnow (string): NESOSIM file path
-        dateStr (string): date string
-        outSnowVar (string): Name of snow depth column
-        outDensityVar (string): Name of snow density column
-        numShots (var, default of 600): Number of shots used to run snow distribution calculation
-    Returns:
-        dF (data frame): Pandas dataframe updated to include colocated NESOSIM (and dsitributed) snow data
-
-    """
-    print ('Processing NESOSIM snow depths...')
-    dN = xr.open_dataset(fileSnow)
-
-    # Get NESOSIM snow depth and density data for that date
-    # Should move this into the loop if there is a significant date cahgne in the freeboard data.
-    # Not done this to improve processing speed. 
-    
-    dNday = dN.sel(day=int(dateStr))
-    # Get NESOSIM coordinates (constant with time)
-    lonsN = array(dNday.longitude)
-    latsN = array(dNday.latitude)
-    xptsN, yptsN = mapProj(lonsN, latsN)
-
-    dateStr= getDate(dF['year'].iloc[0], dF['month'].iloc[0], dF['day'].iloc[0])
-    #print (dateStr)
-    #print ('Freeboard (m):', dF['freeboard'].iloc[x])
-    dNday = dN.sel(day=int(dateStr))
-    snowDepthNDay = array(dNday.snowDepth)
-    snowDensityNDay = array(dNday.density)
-    iceConcNDay = array(dNday.iceConc)
-
-    mask=where((snowDepthNDay>0.01)&(snowDepthNDay<1)&(iceConcNDay>0.01)&np.isfinite(snowDensityNDay))
-
-    snowDepthNDay = snowDepthNDay[mask]
-    snowDensityNDay = snowDensityNDay[mask]
-    xptsNDay = xptsN[mask]
-    yptsNDay = yptsN[mask]
-
-    freeboardsT=dF['freeboard'].values
-    xptsT=dF['xpts'].values
-    yptsT=dF['ypts'].values
-
-    snowDepthGISs=ma.masked_all(size(freeboardsT))
-    snowDensityGISs=ma.masked_all(size(freeboardsT))
-    snowDepthDists=ma.masked_all(size(freeboardsT))
-
-    xmaxprev = -1
-
-    for x in range(size(freeboardsT)):
-        
-        
-
-        #densityDay[where(snowDepthDay<0)]=np.nan
-        #densityDay[where(densityDay<0)]=np.nan
-        #snowDepthDay[where(snowDepthDay<0)]=np.nan
-
-        # Use nearest neighbor to find snow depth at IS2 point
-        snowDepthGIS = griddata((xptsNDay, yptsNDay), snowDepthNDay, (xptsT[x], yptsT[x]), method='nearest') 
-        snowDensityGIS = griddata((xptsNDay, yptsNDay), snowDensityNDay, (xptsT[x], yptsT[x]), method='nearest') 
-
-        # SNOW REDISTRIBUTION
-        # NK changed this to make sure it is the right size: 100 km or +- 50 km
-
-        #Loop is set up to do every point, so will need to only run the function after xmax+1 has been reached
-        
-        if x > xmaxprev or x == 0:
-
-            tpts = numShots   #ICESat has spacing of 172 m per shot, so 600 will need to be increased for ICESat-2
-
-            # xmin1 = x-tpts
-            # if xmin1 < 0: xmin1 = 0
-            xmax1 = x+tpts
-            if xmax1 > len(dF) - 1: xmax1 = len(dF)-1
-
-            # MAYBE CHANGE THIS TO JUST USE THE PROJECTION COORDINATES?
-            dist_km = haversine_np(dF['lon'].iloc[x],dF['lat'].iloc[x],dF['lon'].iloc[x:xmax1],dF['lat'].iloc[x:xmax1]) #calculate distance between center point other surrounding points
-            print('distkm:', dist_km)
-            
-            # dist_km0 = np.zeros(tpts*2+1)
-            # dist_km0 = dist_km[x-xmin1:x+xmax1]   #Redo indexing to start from 0 to make consistent with code
-            # xleft = x-xmin1
-            # temp_left = dist_km[xmin1:x-1]
-            # if x == xmin1: temp_left = dist_km[x]
-            # #xright = xmax1-x
-            # temp_right = dist_km[x+1:xmax1]
-            # if x == len(dF)-1: temp_right = 0.0
-
-            
-            #xmin = np.min(where(dist_km[xmin1:xmax1] < 50.0))  #Doesn't work!
-            # tmp1 = (dist_km.where(dist_km[xmin1:x] < 50.0))
-            # idx1 = tmp1.index.tolist()
-            # xmin = tmp1.idxmax(idx1)  #Find minimum index within 50 km of starting point
-            # if xmin1 == x: xmin = x
-
-
-            # except:
-            #   pdb.set_trace()
-
-            tmp2 = (dist_km.where(dist_km < 100.))
-            print('tmp2', tmp2)
-            # idx2 = tmp2.index.tolist()
-            try:
-                xmax = tmp2.idxmax(tmp2)    #Find maximum index within 100 km of starting point
-            except:
-                if xmax1 == x: xmax = x
-                if xmax > len(dF) - 1: xmax = len(dF)-1
-
-
-            #Get mean of snow depth after extracting closest snow from each point and taking the mean
-            #JUST USE THE CURRENT POINT, SEEMS LIKE OVERKILL
-            low_res_snow = griddata((xptsNDay, yptsNDay), snowDepthNDay, (xptsT[x:xmax+1], yptsT[x:xmax+1]), method='nearest') 
-            mean_snow = ma.mean(low_res_snow)
-            
-            meanFreeboard = ma.mean(freeboardsT[x:xmax+1])
-
-            print('check', mean_snow, freeboardsT[x:xmax+1], meanFreeboard,x, xmax+1)
-            snowDepthDist = snowDistributionV2(mean_snow, freeboardsT[x:xmax+1], meanFreeboard, x, xmax+1)
-            #snowDepthDist = snowDistributionFall(mean_snow, dF['freeboard'].iloc[x:xmax+1], meanFreeboard,x, xmax+1)
-
-            # print(len(snowDepthDists),len(snowDepthGISs)) #make sure the lists are the same size
-
-            for s in range(len(snowDepthDist)): #range(xmaxprev+1-x,len(snowDepthDist)+1):  #Have to convert back to 0 indexing and only append data not previously used
-                try:
-                    # print(s)
-                    snowDepthDists[x]=snowDepthDist[s]
-                except:
-                    print('Error in appending')
-                    pdb.set_trace()     
-            
-            xmaxprev = xmax
-
-
-        #print (x, snowDepthGIS, snowDepthDist, snowDensityGIS)
-        snowDepthGISs[x]=snowDepthGIS
-        snowDensityGISs[x]=snowDensityGIS
-        #snowDepthDists.append(snowDepthDist)
-
-
-    dF[outSnowVar] = pd.Series(snowDepthGISs, index=dF.index)
-    dF[outSnowVar+'dist'] = pd.Series(snowDepthDists, index=dF.index)
-    dF[outDensityVar] = pd.Series(snowDensityGISs, index=dF.index)
-    print ('Processed NESOSIM snow depths')
-
-    return dF
-
-def gridNESOSIMtoFreeboardV3(dF, mapProj, fileSnow, dateStr, outSnowVar='snowDepthNPdist', consIterations=11, gridSize=100000):
-    """
-    Load relevant NESOSIM snow data file and assign to freeboard values using Nathan's snow distribution method
-
-    Args:
-        dF (data frame): Pandas dataframe
-        mapProj (basemap instance): Basemap map projection
-        fileSnow (string): NESOSIM file path
-        dateStr (string): date string
-        outSnowVar (string): Name of snow depth column
-        consIterations (var, default of 11): number of terative loops to try and conserve snow after the freeboard re-distribution
-        gridSize (var, default of 100000): along track distance in meters
-    Returns:
-        dF (data frame): Pandas dataframe updated to include colocated NESOSIM (and dsitributed) snow data
-
-    """
-    # num of points required to do a snow redistribution calculation
-    numPtsReq=100
-
-    dN = xr.open_dataset(fileSnow)
-
-    # Get NESOSIM snow depth and density data for that date
-    # Could move this into the loop if there is a significant date spread in the freeboard data (appears not to be the case though!).
-    # Improves processing speed. 
-    
-    dNday = dN.sel(day=int(dateStr))
-    # Get NESOSIM coordinates (constant with time)
-    lonsN = array(dNday.longitude)
-    latsN = array(dNday.latitude)
-    xptsN, yptsN = mapProj(lonsN, latsN)
-
-    dateStr= getDate(dF['year'].iloc[0], dF['month'].iloc[0], dF['day'].iloc[0])
-    #print (dateStr)
-    #print ('Freeboard (m):', dF['freeboard'].iloc[x])
-    dNday = dN.sel(day=int(dateStr))
-    snowDepthNDay = array(dNday.snowDepth)
-    snowDensityNDay = array(dNday.density)
-    iceConcNDay = array(dNday.iceConc)
-
-    mask=where((snowDepthNDay>0.01)&(snowDepthNDay<1)&(iceConcNDay>0.01)&np.isfinite(snowDensityNDay))
-
-    snowDepthNDay = snowDepthNDay[mask]
-    snowDensityNDay = snowDensityNDay[mask]
-    xptsNDay = xptsN[mask]
-    yptsNDay = yptsN[mask]
-
-    freeboardsT=dF['freeboard'].values
-    xptsT=dF['xpts'].values
-    yptsT=dF['ypts'].values
-
-    #snowDepthGISs=ma.masked_all(size(freeboardsT))
-    #snowDensityGISs=ma.masked_all(size(freeboardsT))
-    #for x in range(size(freeboardsT)):
-    #   snowDensityGIS = griddata((xptsNDay, yptsNDay), snowDensityNDay, (xptsT[x], yptsT[x]), method='nearest') 
-    #    snowDensityGISs[x]=snowDensityGIS
-
-    snowDepthDists=ma.masked_all(size(freeboardsT))
-
-    alongTrackDists = sqrt((xptsT-xptsT[0])**2+(yptsT-yptsT[0])**2)
-    numGrids=int(ceil(alongTrackDists[-1]/gridSize))
-    print('Number of 100km grids in file:', numGrids)
-    
-    for gridIdx in range(numGrids):
-        #print(gridIdx)
-        gridPts=where((alongTrackDists>=(gridSize*gridIdx))&(alongTrackDists<(gridSize*(gridIdx+1))))[0]
-        #print('grididx', gridIdx, ', gridPts:', gridPts, ', size:', size(gridPts), ', dists:', alongTrackDists[gridPts], int((size(gridPts) - 1)/2))
-        
-        if (size(gridPts)>100):
-            midIdx = int((size(gridPts) - 1)/2)
-            midGridIdx=gridPts[midIdx]
-            #print('grid points:', gridPts, midIdx)
-        
-            snowDepthGIS = griddata((xptsNDay, yptsNDay), snowDepthNDay, (xptsT[midGridIdx], yptsT[midGridIdx]), method='nearest') 
-            meanFreeboard = ma.mean(freeboardsT[gridPts])
-
-            snowDepthDistsGrid = snowDistributionV3(snowDepthGIS, freeboardsT[gridPts], meanFreeboard, numIter=consIterations)
-             #print (x, snowDepthGIS, snowDepthDist, snowDensityGIS)
-            snowDepthDists[gridPts]=snowDepthDistsGrid
-
-        else:
-            # Just find the nearest snow depth
-            for gridPt in gridPts:
-                snowDepthDists[gridPt]=griddata((xptsNDay, yptsNDay), snowDepthNDay, (xptsT[gridPt], yptsT[gridPt]), method='nearest') 
-
-       
-    dF[outSnowVar] = pd.Series(snowDepthDists, index=dF.index)
-
-    return dF
-
 def distributeSnow(dF, inputSnowDepth='snowDepthNP', outSnowVar='snowDepthNPdist', consIterations=11, gridSize=100000, version='V3'):
     """
     Do the distribution from the snow data already loaded in
@@ -1291,9 +903,6 @@ dis
         frac=sigmoidFunc(freeboardsT[x]/snowDepthUndistributed[x])
         snowDepthDistsC[x]=frac*snowDepthUndistributed[x]
 
-        #print('freeboard:',freeboardsT[x])
-        #print('raw snow depth:',snowDepthUndistributed[x])
-        #print('kwok snow depth:',snowDepthDistsC[x])
         if (snowDepthDistsC[x] > freeboardsT[x]): 
             # Dont let snow be greater than the freeboard (this is where it ges harder to conserve snow)
             snowDepthDistsC[x] = freeboardsT[x]
@@ -1402,61 +1011,6 @@ def gridNESOSIMtoFreeboard(dF, mapProj, fileSnow, dateStr, outSnowVar='snowDepth
     else:
         return dF
 
-def snowDistributionV2(snowDepthT, freeboardT, meanFreeboardT, xmin, xmax, numIter=11):
-    """
-    Snow distribution function
-    Written by Nathan Kurtz (summer 2018)
-
-    Args:
-        snowDepthT (var): along track snow depth (m)
-        freeboardT (var): along track freeboard (m)
-        meanFreeboardT (var): mean freeboard (m)
-        xmin (var): minimum x position
-        xmax (var): maximum x position
-        numIter (var): number of iterations to minimize the functional fit
-
-    Returns:
-        snowDepthDist (var): along track snow depth distributed to higher resolution
-        
-    """
-
-
-    fb_cutoff = (0.71*100*snowDepthT) + (0.20*100*meanFreeboardT) + 14.6
-    hs_thick_adj = 0.0
-    hs_thick_prev_adj = 0.0
-
-    for iter in range(numIter):     #Set this to zero to not do an iterative loop to conserve snow
-        print ('iter:', iter)
-        hs_thick = (1.03*snowDepthT*100) + 0.83 + hs_thick_adj 
-
-        new_snow = np.zeros(len(freeboardT))
-        scount=0
-        for in2 in range(xmin,xmax): #len(freeboardT)): #Apparently freeboardT doesn't start with index 0!
-            print ('in2:', in2)
-            hs_thin = hs_thick * freeboardT[in2]*100.0/fb_cutoff    #linear way
-            
-
-            hs_use = hs_thin
-            if freeboardT[in2]*100.0 >= fb_cutoff: 
-                hs_use = hs_thick   
-            hs_use = hs_use*0.01  # Convert back to meters
-            if hs_use > freeboardT[in2]: 
-                hs_use = freeboardT[in2]
-
-            new_snow[scount] = hs_use
-            scount=scount+1
-
-        # Calculate hs_thick_adj
-        hs_thick_adj = (snowDepthT - np.mean(new_snow))*100.0 + hs_thick_prev_adj
-        if abs(hs_thick_adj-hs_thick_prev_adj) < 0.1:
-            break 
-        hs_thick_prev_adj = hs_thick_adj
-
-    snowDepthDist = new_snow    
-
-    #print ('mean freeboard and snow depth section:', meanFreeboardT, ma.mean(new_snow))
-
-    return snowDepthDist/100.
 
 def snowDistributionV3(meanSnowDepthT, freeboardsT, meanFreeboardT, numIter=11):
     """
