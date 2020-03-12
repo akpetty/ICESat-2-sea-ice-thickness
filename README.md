@@ -7,49 +7,73 @@ Get in touch if you have any questions:
 
 ## Introduction
 
-Code repository for producing sea ice thickness estimates from ICESat-2 freeboard data. The plan is for this repository to include all the code and methodology needed for converting sea ice freeboard to sea ice thickness from data released after the upcoming launch of ICESat-2. This will include testing with ICESat-1 and Operation IceBridge freeboard data. Our primary focus will be on the Arctic, but we do plan on including Southern Ocean thickness estimates at some point. Jupyter Notebooks included in this repo will provide an interactive view of the freeboard-thickness methodology.
+Code repository for producing sea ice thickness estimates from ICESat-2 freeboard data. The model code is written in Python, an open source programming language (Python Software Foundation, https://www.python.org/). The main inputs needed for the thickness calculation are ATL10 sea ice freeboard from ICESat-2 and snow depth/density. We also need to make a few other assumptions (e.g. ice density) which are discussed in the code.
 
 ![Sea ice thickness from satelite laser altimetry](SeaIceSchematic.png?raw=true "Sea ice thickness from satelite laser altimetry")
 
+Versions:
 
-The main inputs needed for the thickness calculation are sea ice freeboard and snow depth/density. We also need to make a few other assumptions (e.g. ice density) which are discussed in the scripts/notebooks.
+v1.0: This initial repo was used to processes ICESat-2 (and also ICESat) thickness estimates for the first winter season of data collection (October 14th 2018 to April 30th 2019).
 
-Included in this repository are some test along-track freeboard data files from:
- - ICESat-1 (??): ```/TestData/IS1/```
- - Operation IceBridge (Apr 25th, 2013): ```/TestData/OIB/```
- - ICESat-2 data (one file of ATL10 along-track shot freeboards, Oct 14th 2018): ```/TestData/IS2/```
-and gridded snow depths/densities from the NESOSIM model:
-- NESOSIM (Aug 15th to May 1st 2005-2006, 2013-2014, Oct 2018): ```/TestData/NESOSIM/```
-
-The ICESat-2 ATL10 along-track freeboard data is being made available on the SCF ('/cooler/sea_ice_pge/sea_ice_product/') so the plan is to run this code on that server and link directly to those data files as they are produced. 
- 
-More information about the NESOSIM snow model can be found here: https://github.com/akpetty/NESOSIM. I also have a working development branch (NESOSIMdev) that I can add you to as desired. I have included a test file run through to the end of October 2018 to use with the October ATL10s.
-
-The ```/Scripts/``` folder contains some Jupyter Notebooks and Python scripts describing the snow distribution and thickness conversion methodology.
-
-
-I will include more information on getting started with Python etc. The plan is for the code to be produced in Python 3.6. Packages will be maintained with Conda. You can get more information about this in my sea ice prediction repo: https://github.com/akpetty/SeaIcePrediction. Briefly, you should be able to just import the conda environment included in this repo as:
+### Getting Started
+If you are familiar with using conda to manage your Python environment you should be able to just import the conda environment included in this repo as:
 ```
-conda env create -n py36env -f environment.yml
+conda env create -n py36envX -f environment.yml
 ```
 then simply activate this environment to work in (to avoid using you own Python environment which wil likely have dependency issues)
 ```
-source activate py36env
+source activate py36envX
 ```
-
-## Project plan
-
-![Sea ice thickness flowchart](IS2flowchart.pdf?raw=true "Sea ice thickness processing flowchart")
+A requirements.txt file is also included for installing with pip, although this hasn't been tested.
 
 
-## Data description
 
-Add here
+## Code layout
 
-## Script/notebook descriptions
 
-Add here
+The ```/Code/``` folder contains the primary scripts to process ATL10 freeboards, and also ICESat freeboards into sea ice thickness. The ```batch_process_icesat2.py``` file links to modules contained in ```common_functions.py```
 
-## References
+Also included are plotting scripts:
+```/Code/Plotting/``` 
+which includes scripts to generate the plots shown in Petty et al., (2020). 
 
-Add references
+We also include gridding scripts (for both the ICESat and ICESat-2 data):
+```/Code/Gridding/``` 
+
+![Sea ice thickness flowchart](IS2flowchart.png?raw=true "Sea ice thickness processing flowchart")
+
+## Input data
+
+#### ATL10 freeboards
+
+#### NESOSIM snow depth and density
+
+More information about the NESOSIM snow model can be found here: https://github.com/akpetty/NESOSIM. 
+
+#### OSI SAF ice type
+
+This is used mainly to derive modified Warren climatology snow depth information, but is also stored in the datafiles to enable post-processing.
+
+#### Ancillary data
+
+## Derived data
+
+Data are in the process of being provided on the NSIDC. For now just the gridded data are available on the ICESat-2 project page: PROVIDE LINK.
+
+#### Along track data
+
+
+#### Gridded data
+
+A single NetCDF file is provided for each month from November 2018 to APril 2019. The plan is to provide this routinely for all future winter seasons (October to April).
+Each NetCDF file includes the following variables: 
+
+ - Effective day of the month (day). 
+
+ PROVIDE DEMO MONTH FILE HERE.
+
+## Reference
+
+Petty, A. A., N. T. Kurtz, R. Kwok, T. Markus, T. A. Neumann, Winter Arctic sea ice thickness from ICESat-2 freeboards (JGR Oceans)
+
+
