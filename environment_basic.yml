@@ -1,0 +1,12 @@
+name: py36envB
+dependencies:
+  - python=3.6
+  - numpy
+  - pandas
+  - xarray
+  - netCDF4
+  - basemap
+  - dask
+  - matplotlib
+  - h5py
+  - pyproj
