@@ -11,7 +11,7 @@ v1.0: This initial repository was used to processes ICESat-2 (and also ICESat) t
 
 ### Getting Started
 
-If you are familiar with using conda to manage your Python environment you should be able to just import the conda environment included in this repo as:
+If you are familiar with using conda to manage your Python environment you should be able to just import the conda environment included in this repository as:
 ```
 conda env create -n py36envX -f environment.yml
 ```
@@ -30,8 +30,9 @@ The ```batch_process_icesat2.py``` and ```batch_process_icesat.py``` scripts lin
 
 Also included are some demo plotting scripts:
 ```/Code/Plotting/``` 
-which ican be used to generate some of the figures included in Petty et al., (2020). 
+which can be used to generate some of the figures included in Petty et al., (2020). 
 
+The basic flow chart of this sea ice processing approach is shown in the flowchart below and is explained in more detail in Petty et al., (2020).
 
 <img src="IS2flowchart.png" width="800">
 
@@ -72,7 +73,7 @@ Gridded (25 km, NSIDC polar stereographic projection) monthly data are also prov
 
 An example monthly gridded sea ice thickness dataset is shown below.
 
-<img src="april2019_gridded_demo.png" width="600">
+<img src="april2019_gridded_demo.png" width="800">
 
 
 ## References
