@@ -3,7 +3,7 @@ Contact: Alek Petty / alek.a.petty@nasa.gov / www.alekpetty.com
 
 Code repository for producing sea ice thickness estimates from ICESat-2 freeboard data. The model code is written in the open source programming language Python (Python Software Foundation, https://www.python.org/). The main inputs needed for the thickness calculation are ATL10 sea ice freeboards from ICESat-2 and snow depth/density data (e.g. from the NESOSIM model). We also need to make a few other assumptions (e.g. ice density) which are discussed in the code.
 
-![Sea ice thickness from satelite laser altimetry](SeaIceSchematic.png?raw=true "Sea ice thickness from satelite laser altimetry"){height=50%}
+<img src="SeaIceSchematic.png" width="600">
 
 Versions:
 
@@ -31,10 +31,9 @@ The ```batch_process_icesat2.py``` and ```batch_process_icesat.py``` scripts lin
 Also included are some demo plotting scripts:
 ```/Code/Plotting/``` 
 which ican be used to generate some of the figures included in Petty et al., (2020). 
- 
-![Sea ice thickness flowchart](IS2flowchart.png){height=70%}
 
-<img src="IS2flowchart.png" width="400">
+
+<img src="IS2flowchart.png" width="600">
 
 ## Input data
 
@@ -73,7 +72,7 @@ Gridded (25 km, NSIDC polar stereographic projection) monthly data are also prov
 
 An example monthly gridded sea ice thickness dataset is shown below.
 
-![April 2019 gridded sea ice thickness dataset](april2019_gridded_demo.png?raw=true "April 2019 gridded sea ice thickness dataset"){height=70%}
+<img src="april2019_gridded_demo.png" width="600">
 
 
 ## References
