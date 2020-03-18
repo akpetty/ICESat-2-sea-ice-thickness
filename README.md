@@ -5,7 +5,7 @@ Code repository for producing sea ice thickness estimates from ICESat-2 freeboar
 
 <img src="SeaIceSchematic.png" width="600">
 
-Versions:
+#### Versions
 
 v1.0: This initial repository was used to processes ICESat-2 (and also ICESat) thickness estimates for the first winter season of data collection (October 14th 2018 to April 30th 2019).
 
@@ -26,14 +26,14 @@ A requirements.txt file is also included for installing with pip, although this 
 
 The ```/Code/``` folder contains the primary scripts to process ATL10 freeboards (and also original ICESat freeboards) into sea ice thickness. 
 
-The ```batch_process_icesat2.py``` and ```batch_process_icesat.py``` scripts link to modules contained in ```common_functions.py```
+The ```batch_process_icesat2.py``` and ```batch_process_icesat.py``` scripts link to modules contained in ```common_functions.py``` that read in ATL10 data, assing this to a Pandas dataframe, read in other relevant datasets and finally estimate sea ice thickness. THe data are saved as netcdf files using xarray to enable the use of Dask/xarray to read in and analyze these large files in parralel.
 
 Also included are some demo plotting scripts:
 ```/Code/Plotting/``` 
 which ican be used to generate some of the figures included in Petty et al., (2020). 
 
 
-<img src="IS2flowchart.png" width="600">
+<img src="IS2flowchart.png" width="800">
 
 ## Input data
 
