@@ -27,7 +27,7 @@ cF.reset_matplotlib()
 mapProj = Basemap(epsg=3411,resolution='l', llcrnrlon=279.26, llcrnrlat=48., urcrnrlon=100, urcrnrlat=55.37)
 
 relStr='rel002'
-runStr='run10'
+runStr='run12'
 
 
 
@@ -42,7 +42,7 @@ is2DataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
 is1DataPath='/cooler/scratch1/aapetty/DataOutput/IS1/'
 figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Maps/'
 savePathIS2=is2DataPath+'/'+relStr+'/'+runStr+'/products/'
-smoothingWindow=400
+smoothingWindow=200
 resolution=25.
 
 year=2019
@@ -54,7 +54,7 @@ yearStr=str(year)
 dayStr='*'
 
 segment=1
-versionStrIS2='vInt8'
+versionStrIS2='v1'
 campaignStrIS2='FM19'
 
 labelStr=runStr+'-'+beamStr+'-'+yearStr+monLabel+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStrIS2

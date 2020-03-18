@@ -22,7 +22,7 @@ cF.reset_matplotlib()
 
 
 relStr='rel002'
-runStr='run10'
+runStr='run12'
 
 #figPath='../../Figures/'
 figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Maps/'
@@ -33,11 +33,11 @@ iceTypePath='/cooler/scratch1/aapetty/Data/ICETYPE/OSISAF/'
 
 beams=['bnum1']
 dayStr='*'
-month=12
+month=4
 monStr='%02d' %(month)
 
 fNum=-1 #-1=all
-yearStr='2018'
+yearStr='2019'
 
 
 cols=['freeboard','snow_depth_NPdist','ice_thickness_NPdist']

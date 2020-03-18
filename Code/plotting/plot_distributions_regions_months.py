@@ -25,7 +25,7 @@ cF.reset_matplotlib()
 
 
 releaseStr='rel002'
-runStr='run10'
+runStr='run12'
 
 beam='bnum1'
 dayStr='*'
@@ -76,9 +76,10 @@ for m in range(size(monStrs)):
     monStr=monStrs[m]
     dFbeams = cF.getProcessedATL10ShotdataNCDF(dataOutPath, yearStr=yearStrs[m], monStr=monStrs[m], dayStr=dayStr, ssh_mask=1, vars=vars, fNum=fNum, beamStr=beam)
     print('Got data')
-    dFbeams=dFbeams.where(dFbeams.seg_length>5, drop=True)
+    dFbeams=dFbeams.where(dFbeams.seg_length>4, drop=True)
     dFbeams=dFbeams.where(dFbeams.seg_length<200, drop=True)
     dFbeams=dFbeams.where(dFbeams[var]>0.0, drop=True)
+    dFbeams=dFbeams.where(dFbeams[var]<30, drop=True)
     dFbeams=dFbeams.where(~np.isnan(dFbeams[var]), drop=True)
 
     for r in range(size(regions)):
@@ -96,6 +97,7 @@ for m in range(size(monStrs)):
         h, bins = da.histogram(vals.data, bins=size(binVals)-1, range=[0, maxValue], weights=weights.data)
         histVals[r, m]=h.compute()
 
+savetxt(figPath+'/regions_stats.txt', means)
 
 
 #fig = figure(figsize=(10, 10.5))
@@ -119,9 +121,9 @@ for x in range(size(regions)):
 
     ax.annotate('('+chr(97+x)+') '+region_labels[x], xy=(0.98, 0.85), xycoords='axes fraction', horizontalalignment='right', verticalalignment='bottom')
     ax.set_xlim(0, maxValue)
-   
+    ax.set_ylim(0, 0.18)
 
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(0.5))
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
      
     #ax.set_ylim(0, 0.15)
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.05))
@@ -135,16 +137,16 @@ for x in range(size(regions)):
     
     if (x%2 == 0):
         ax.set_ylabel('Probability density') 
-    else:
-        ax.set_yticklabels([])
+    #else:
+        #ax.set_yticklabels([])
     
     
     #if (x==0):
     #    ax.annotate(dateStr, xy=(0.98, 0.4), xycoords='axes fraction', horizontalalignment='right', verticalalignment='top')
         #ax.annotate('Bin width: '+str(binWidth)+' m', xy=(0.98, 0.3), xycoords='axes fraction', horizontalalignment='right', verticalalignment='top')
         
-subplots_adjust(bottom=0.07, left=0.075, right=0.99, top=0.98, hspace = 0.08, wspace=0.11)
-plt.savefig(figPath+'/beamTest_'+labelStr+var+'RegionsShotSeg_'+str(size(monStrs))+'monthsv2.png', dpi=500)
+subplots_adjust(bottom=0.07, left=0.075, right=0.985, top=0.98, hspace = 0.08, wspace=0.12)
+plt.savefig(figPath+'/beamTest_'+labelStr+var+'RegionsShotSeg_'+str(size(monStrs))+'monthsmax30.png', dpi=500)
 
 
 

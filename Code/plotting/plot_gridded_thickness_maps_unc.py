@@ -43,17 +43,17 @@ baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
 iceTypePath='/cooler/scratch1/aapetty/Data/ICETYPE/OSISAF/'
 
 relStr='rel002'
-runStr='run11'
+runStr='run12'
 
 figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Maps/'
 savePath=baseDataPath+'/'+relStr+'/'+runStr+'/products/'
-smoothingWindow=400
+smoothingWindow=200
 resolution=25.
 beamStr='bnum1'
 dayStr='*'
 #dayStr=str(day)
 snowVar='NPdist'
-versionStr='vInt8'
+versionStr='v1'
 segment=1
 
 
@@ -131,7 +131,7 @@ savefig(figPath+'/icethickness'+labelStr+str(size(years))+'unc.png', dpi=300)
 
 
 minval=0
-maxval=150
+maxval=100
 fig, axs = plt.subplots(nrows=2, ncols=3, figsize=(7.5, 5.8))
 
 i=0

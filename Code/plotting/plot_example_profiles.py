@@ -22,7 +22,7 @@ import common_functions as cF
 
 
 releaseStr='rel002'
-runStr='run11'
+runStr='run12'
 
 
 #figPath='../../Figures/'
@@ -30,7 +30,7 @@ figPath='/cooler/scratch1/aapetty/Figures/IS2/'+releaseStr+'/'+runStr+'/'
 baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
 dataPath=baseDataPath+'/'+releaseStr+'/'+runStr+'/raw/'
 
-example=2
+example=1
 #---Kara Sea FYI
 if (example==1):
 	beam='bnum1'

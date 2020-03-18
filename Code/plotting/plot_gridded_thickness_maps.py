@@ -44,17 +44,17 @@ baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
 iceTypePath='/cooler/scratch1/aapetty/Data/ICETYPE/OSISAF/'
 
 relStr='rel002'
-runStr='run10'
+runStr='run12'
 
 figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Maps/'
 savePath=baseDataPath+'/'+relStr+'/'+runStr+'/products/'
-smoothingWindow=400
+smoothingWindow=200
 resolution=25.
 beamStr='bnum1'
 dayStr='*'
 #dayStr=str(day)
 snowVar='NPdist'
-versionStr='vInt8'
+versionStr='v2'
 segment=1
 
 
@@ -108,7 +108,7 @@ for i in range(size(years)):
 	mapProj.drawcoastlines(linewidth=0.25, zorder=5)
 	ax.annotate('('+chr(97+i)+') '+dateStrs[i], xy=(0.01, 0.935),xycoords='axes fraction', horizontalalignment='left', verticalalignment='bottom', fontsize=8, zorder=10)
 	#im11 = mapProj.contour(xptsc , yptsc, iceconcs[i],levels=0.15, colors='k', linewidths=0.8, zorder=5, alpha=1)
-	im11 = mapProj.contour(xptsc , yptsc, iceconcs[i],levels=0.5, colors='r', linewidths=0.5, zorder=5, alpha=1)
+	im11 = mapProj.contour(xptsc , yptsc, iceconcs[i],levels=0.5, colors='m', linewidths=0.5, zorder=5, alpha=1)
 	im21 = mapProj.contour(xptst , yptst, icetypes[i],levels=0.5, colors='k', linewidths=0.4, zorder=5, alpha=0.7)
 
 	#m.contour(xpts , ypts, region_maskAO, 1, colors='k', linestyles='-',linewidths=0.4, zorder=4)

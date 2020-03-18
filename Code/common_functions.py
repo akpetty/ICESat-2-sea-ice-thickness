@@ -319,21 +319,6 @@ def getProcessedATL10Shotdata(dataOutPathM, runStrT, campaignStrT, cols, yearStr
         print('No files')
         return
 
-def getShotVar(dataPathT, yearStr='2018', monStr='*', dayStr='*', fNum=-1, beamStr='gt1r', var=var, smoothingWindow=0):
-    """
-    Load ICESat-2 thickness data produced from the raw ATL10 shot data
-        
-    """
-    
-    print(dataPathT+'IS2ATL10*'+yearStr+monStr+dayStr+'*'+'_*'+beamStr+'*.nc')
-    files=glob(dataPathT+'IS2ATL10*'+yearStr+monStr+dayStr+'*'+'_*'+beamStr+'*.nc')
-    print('Number of files:', size(files))
-    #import pdb; pdb.set_trace()
-
-    IS2files=[xr.open_dataset(file)[var].values for file in files] 
-    var=np.hstack(IS2files)
-    
-    return var
 
 
 def getProcessedATL10ShotdataNCDF(dataPathT, yearStr='*', monStr='*', dayStr='*', fNum=-1, concat=0, ssh_mask=0, minseg=0, maxseg=0, beamStr='gt1r', vars=[], smoothingWindow=0):
@@ -390,6 +375,7 @@ def getProcessedATL10ShotdataNCDF(dataPathT, yearStr='*', monStr='*', dayStr='*'
         print(IS2dataAll.info)
 
     if (minseg>0):
+        print('seg range:', np.amin(IS2dataAll['seg_length'].values), np.max(IS2dataAll['seg_length'].values))
         print('min seg filter..', minseg)
         IS2dataAll=IS2dataAll.where(IS2dataAll['seg_length']>minseg, drop=True)
         print('seg range:', np.amin(IS2dataAll['seg_length'].values), np.max(IS2dataAll['seg_length'].values))
@@ -408,7 +394,6 @@ def getProcessedATL10ShotdataNCDF(dataPathT, yearStr='*', monStr='*', dayStr='*'
         seg_weightedvar=seg_weightedvarR[int(smoothingWindow/2):-int(smoothingWindow/2):smoothingWindow]
        # print(seg_weightedvar)
 
-        seg_weightedvars=[]
         ds = seg_weightedvar.to_dataset(name = 'seg_length')
         #seg_weightedvars.append(seg_weightedvar)
         # Skip the first one as that's always (should be) the seg_length
@@ -430,6 +415,8 @@ def getProcessedATL10ShotdataNCDF(dataPathT, yearStr='*', monStr='*', dayStr='*'
         #ds=ds.chunk(2000)
         #print('Rechunked')
         print(ds)
+
+        IS2dataAll.close()
         return ds
     else:
 
@@ -1985,7 +1972,7 @@ def grid2polarstereo(data, lat, lon, reso, hemi,minpts):
     return mapd
 
 #@jit
-def bindataN(x, y, z, xG, yG, binsize=0.01, retbin=True, retloc=True):
+def bindataN(x, y, z, xG, yG, binsize, retbin=True, retloc=False):
     """
     Place unevenly spaced 2D data on a grid by 2D binning (nearest
     neighbor interpolation).
@@ -2084,8 +2071,8 @@ def bindataN(x, y, z, xG, yG, binsize=0.01, retbin=True, retloc=True):
         else:
             return grid
 
-@jit
-def bindataSegment(x, y, z, seg, xG, yG, binsize=0.01, retbin=True, retloc=True):
+#@jit
+def bindataSegWeighted(x, y, z, seg, xG, yG, binsize=0.01, retbin=True, retloc=False):
     """
     Place unevenly spaced 2D data on a grid by 2D binning (nearest
     neighbor interpolation) and weight using the IS2 segment lengths.

@@ -18,6 +18,7 @@ from rasterio.fill import fillnodata
 from calendar import monthrange
 from itertools import repeat, product
 import concurrent.futures
+from datetime import datetime
 sys.path.append('../')
 import common_functions as cF
 cF.reset_matplotlib()
@@ -192,7 +193,7 @@ def outputAlongTrackData(savePathT, lats1d, lons1d, vars1d, monString, outString
 
 	f.close()
 
-def outputBinnedData(savePathT, lats2d, lons2d, vars2d, monString, outStringT):
+def outputBinnedData(savePathT, xpts2d, ypts2d, lats2d, lons2d, vars2d, monString, outStringT):
 	""" Read in xrarray data and save as netCDF 
 
 	Args:
@@ -214,162 +215,116 @@ def outputBinnedData(savePathT, lats2d, lons2d, vars2d, monString, outStringT):
 
 	longitude = f.createVariable('longitude', 'f4', ('x', 'y'))
 	latitude = f.createVariable('latitude', 'f4', ('x', 'y'))  
-	
-	#dates = f.createDimension('dates', None)
-	#startYr = f.createVariable('startYear', 'i2')
-	#date_range = f.createVariable('year', 'str')
 
-	longitude.units = 'degrees East'
-	latitude.units = 'degrees North'
+	xpts = f.createVariable('xgrid', 'f4', ('x', 'y'))
+	ypts = f.createVariable('ygrid', 'f4', ('x', 'y'))  
+	
+
+	
 	
 	longitude[:] = np.around(lons2d, decimals=4) #The "[:]" at the end of the variable instance is necessary
 	latitude[:] = np.around(lats2d, decimals=4)
 	
+	xpts[:] = np.around(xpts2d, decimals=4) #The "[:]" at the end of the variable instance is necessary
+	ypts[:] = np.around(ypts2d, decimals=4)
+
 	print(vars2d)
 	print(' Variable length:', len(vars2d))
-	#print('Num vars:', vars2d.shape[0])
-	if (len(vars2d)==1):
-		iceThickness = f.createVariable('ice_thickness', 'f4', ('x', 'y'))
-
-		iceThickness[:] = np.around(vars2d[0], decimals=4)
-		
-		iceThickness.description = monString+' mean ice thickness'
-	
-	if (len(vars2d)==2):
-		iceThickness = f.createVariable('ice_thickness', 'f4', ('x', 'y'))
-		freeboard = f.createVariable('freeboard', 'f4', ('x', 'y'))
-
-		iceThickness[:] = np.around(vars2d[0], decimals=4)
-		freeboard[:] = np.around(vars2d[1], decimals=4)
-		
-		iceThickness.description = monString+' mean ice thickness'
-		freeboard.description = monString+' mean freeboard'
-
-	elif (len(vars2d)==3):
-		# Assume all three main variables
-		iceThickness = f.createVariable('ice_thickness', 'f4', ('x', 'y'))
-		numDaysData = f.createVariable('num_binned_days', 'f4', ('x', 'y'))
-		meanDayOfMonth = f.createVariable('mean_day_of_month', 'f4', ('x', 'y'))
-		
-		iceThickness[:] = np.around(vars2d[0], decimals=4)
-		numDaysData[:] = np.around(vars2d[1], decimals=4)
-		meanDayOfMonth[:] = np.around(vars2d[2], decimals=4)
-		
-		iceThickness.description = monString+' mean ice thickness'
-		numDaysData.description = 'Number of days of valid binned thickenss data in the month'
-		meanDayOfMonth.description = monString+' mean day of the month'
-
-	elif (len(vars2d)==4):
-		# Assume all three main variables
-		iceThickness = f.createVariable('ice_thickness', 'f4', ('x', 'y'))
-		iceThicknessi = f.createVariable('ice_thickness_i', 'f4', ('x', 'y'))
-		numDaysData = f.createVariable('num_binned_days', 'f4', ('x', 'y'))
-		meanDayOfMonth = f.createVariable('mean_day_of_month', 'f4', ('x', 'y'))
-		
-
-		iceThickness[:] = np.around(vars2d[0], decimals=4)
-		iceThicknessi[:] = np.around(vars2d[1], decimals=4)
-		numDaysData[:] = np.around(vars2d[2], decimals=4)
-		meanDayOfMonth[:] = np.around(vars2d[3], decimals=4)
-		
-
-		iceThickness.description = monString+' mean ice thickness within a bin'
-		iceThicknessi.description = monString+' mean ice thickness within a bin over ice'
-		numDaysData.description = 'Number of days of valid binned thickenss data in the month'
-		meanDayOfMonth.description = monString+' mean day of the month'
-		
-
-	elif (len(vars2d)==5):
-		print('output 5 variable netcdfs')
-		# Assume all three main variables
-		iceThickness = f.createVariable('ice_thickness', 'f4', ('x', 'y'))
-		numDaysData = f.createVariable('num_binned_days', 'f4', ('x', 'y'))
-		meanDayOfMonth = f.createVariable('mean_day_of_month', 'f4', ('x', 'y'))
-		freeboard = f.createVariable('freeboard', 'f4', ('x', 'y'))
-		thickness_uncertainty = f.createVariable('thickness_uncertainty', 'f4', ('x', 'y'))
-
-		iceThickness[:] = np.around(vars2d[0], decimals=4)
-		numDaysData[:] = np.around(vars2d[1], decimals=4)
-		meanDayOfMonth[:] = np.around(vars2d[2], decimals=4)
-		freeboard[:] = np.around(vars2d[3], decimals=4)
-		thickness_uncertainty[:] = np.around(vars2d[4], decimals=4)
-
-		iceThickness.description = monString+' mean ice thickness'
-		numDaysData.description = 'Number of days of valid binned thickenss data in the month'
-		meanDayOfMonth.description = monString+' mean day of the month'
-		freeboard.description = monString+' mean freeboard'
-		thickness_uncertainty.description = monString+' systematic uncertainty estimate'
-
-	elif (len(vars2d)==6):
-		print('output 6 variable netcdfs')
-		# Assume all three main variables
-		iceThickness = f.createVariable('ice_thickness', 'f4', ('x', 'y'))
-		numDaysData = f.createVariable('num_binned_days', 'f4', ('x', 'y'))
-		meanDayOfMonth = f.createVariable('mean_day_of_month', 'f4', ('x', 'y'))
-		freeboard = f.createVariable('freeboard', 'f4', ('x', 'y'))
-		snow = f.createVariable('snow_depth', 'f4', ('x', 'y'))
-		thickness_uncertainty = f.createVariable('thickness_uncertainty', 'f4', ('x', 'y'))
-
-		iceThickness[:] = np.around(vars2d[0], decimals=4)
-		numDaysData[:] = np.around(vars2d[1], decimals=4)
-		meanDayOfMonth[:] = np.around(vars2d[2], decimals=4)
-		freeboard[:] = np.around(vars2d[3], decimals=4)
-		snowDepth[:] = np.around(vars2d[4], decimals=4)
-		thickness_uncertainty[:] = np.around(vars2d[5], decimals=4)
-
-		iceThickness.description = monString+' mean ice thickness'
-		numDaysData.description = 'Number of days of valid binned thickenss data in the month'
-		meanDayOfMonth.description = monString+' mean day of the month'
-		snowDepth.description = monString+' mean snow depth'
-		freeboard.description = monString+' mean freeboard'
-		thickness_uncertainty.description = monString+' systematic uncertainty estimate'
-
-	else:
-		# Assume all three main variables
-		iceThickness = f.createVariable('ice_thickness', 'f4', ('x', 'y'))
-		iceThicknessUnc = f.createVariable('ice_thickness_unc', 'f4', ('x', 'y'))
-		numDaysData = f.createVariable('num_binned_days', 'f4', ('x', 'y'))
-		meanDayOfMonth = f.createVariable('mean_day_of_month', 'f4', ('x', 'y'))
-		snowDepth = f.createVariable('snow_depth', 'f4', ('x', 'y'))
-		snowDensity = f.createVariable('snow_density', 'f4', ('x', 'y'))
-		freeboard = f.createVariable('freeboard', 'f4', ('x', 'y'))
-		iceType = f.createVariable('ice_type', 'f4', ('x', 'y'))
-		
-
-		iceThickness[:] = np.around(vars2d[0], decimals=4)
-		freeboard[:] = np.around(vars2d[1], decimals=4)
-		snowDepth[:] = np.around(vars2d[2], decimals=4)
-		snowDensity[:] = np.around(vars2d[3], decimals=4)
-		iceType[:] = np.around(vars2d[4], decimals=0)
-		iceThicknessUnc[:] = np.around(vars2d[5], decimals=4)
-		numDaysData[:] = np.around(vars2d[6], decimals=4)
-		meanDayOfMonth[:] = np.around(vars2d[7], decimals=4)
-
-		iceThickness.description = monString+' mean ice thickness'
-		iceThickness.units = 'meters'
-		iceThicknessUnc.description = monString+' mean ice thickness uncertainty'
-		iceThicknessUnc.units = 'meters'
-		numDaysData.description = 'Number of days of valid binned thickness data in the month'
-		numDaysData.units = 'days'
-		snowDepth.description = monString+' mean snow depth'
-		snowDepth.units = 'meters'
-		snowDensity.description = monString+' mean snow density'
-		snowDensity.units = 'kilograms per meters cubed'
-		freeboard.description = monString+' mean freeboard'
-		freeboard.units = 'meters'
-		iceType.description = monString+' mean ice type'
-		freeboard.units = '0 = first-year ice, 1 = multi-year ice'
-		meanDayOfMonth.description = monString+' mean day of the month represented by a given grid-cell based on the along-track data'
-		meanDayOfMonth.units = 'day'
 
 
-	#Add global attributes
+	# Assume all three main variables
+	iceThickness = f.createVariable('ice_thickness', 'f4', ('x', 'y'))
+	iceThicknessUnc = f.createVariable('ice_thickness_unc', 'f4', ('x', 'y'))
+	numDaysData = f.createVariable('num_binned_days', 'i4', ('x', 'y'))
+	meanDayOfMonth = f.createVariable('mean_day_of_month', 'f4', ('x', 'y'))
+	snowDepth = f.createVariable('snow_depth', 'f4', ('x', 'y'))
+	snowDensity = f.createVariable('snow_density', 'f4', ('x', 'y'))
+	freeboard = f.createVariable('freeboard', 'f4', ('x', 'y'))
+	iceType = f.createVariable('ice_type', 'f4', ('x', 'y'))
+	#projection = f.createVariable('projection', 'i4')
+
+	iceThickness[:] = np.around(vars2d[0], decimals=4)
+	freeboard[:] = np.around(vars2d[1], decimals=4)
+	snowDepth[:] = np.around(vars2d[2], decimals=4)
+	snowDensity[:] = np.around(vars2d[3], decimals=4)
+	iceType[:] = np.around(vars2d[4], decimals=0)
+	iceThicknessUnc[:] = np.around(vars2d[5], decimals=4)
+	numDaysData[:] = vars2d[6]
+	meanDayOfMonth[:] = np.around(vars2d[7], decimals=0)
+
+	longitude.units = 'degrees East'
+	longitude.long_name='longitude'
+
+	xgrid.units = 'meters'
+	xgrid.long_name='projection grid in x direction'
+
+	ygrid.units = 'meters'
+	ygrid.long_name='projection grid in y direction'
+
+	latitude.units = 'degrees North'
+	latitude.long_name='latitude'
+
+	iceThickness.description = monString+' mean ice thickness using piecewise redistributed NESOSIM data.'
+	iceThickness.units = 'meters'
+	iceThickness.long_name ='sea ice thickness'
+	#iceThickness.grid_mapping ='projection'
+
+	iceThicknessUnc.description = monString+' mean ice thickness uncertainty'
+	iceThicknessUnc.units = 'meters'
+	iceThicknessUnc.long_name ='sea ice thickness uncertainty'
+	#iceThicknessUnc.grid_mapping ='projection'
+
+	snowDepth.description = monString+' mean snow depth using piecewise redistributed NESOSIM data.'
+	snowDepth.units = 'meters'
+	snowDepth.long_name = 'snow depth'
+	#snowDepth.grid_mapping ='projection'
+
+	snowDensity.description = monString+' mean snow density from NESOSIM.'
+	snowDensity.units = 'kilograms per meters cubed'
+	snowDensity.long_name = 'snow density'
+	#snowDensity.grid_mapping ='projection'
+
+	freeboard.description = monString+' mean freeboard from ATL10'
+	freeboard.units = 'meters'
+	freeboard.long_name = 'sea ice freeboard'
+	#freeboard.grid_mapping ='projection'
+
+	iceType.description = monString+' mean ice type '
+	iceType.units = 'ice type flag (0 = first-year ice, 1 = multi-year ice)'
+	iceType.long_name = 'sea ice type classification'
+	#iceType.grid_mapping ='projection'
+
+	meanDayOfMonth.description = monString+' mean day of the month represented by a given grid-cell based on the date of the along-track data'
+	meanDayOfMonth.units = 'day'
+	meanDayOfMonth.long_name = 'day of month'
+	#meanDayOfMonth.grid_mapping ='projection'
+
+	numDaysData.description = 'Number of valid daily binnned data in the month'
+	numDaysData.units = 'days'
+	numDaysData.long_name = 'number of valid daily bins'
+	#numDaysData.grid_mapping ='projection'
+
+	#projection.proj4text = "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +a=6378273 +b=6356889.449 +units=m +no_defs";
+	#projection.spatial_ref='"PROJCS[\"NSIDC Sea Ice Polar Stereographic North\",GEOGCS[\"Unspecified datum based upon the Hughes 1980 ellipsoid\",DATUM[\"Not_specified_based_on_Hughes_1980_ellipsoid\",SPHEROID[\"Hughes 1980\",6378273,298.279411123061,AUTHORITY[\"EPSG\",\"7058\"]],AUTHORITY[\"EPSG\",\"6054\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.01745329251994328,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"EPSG\",\"4054\"]],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],PROJECTION[\"Polar_Stereographic\"],PARAMETER[\"latitude_of_origin\",70],PARAMETER[\"central_meridian\",-45],PARAMETER[\"scale_factor\",1],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],AUTHORITY[\"EPSG\",\"3411\"],AXIS[\"X\",UNKNOWN],AXIS[\"Y\",UNKNOWN]]";'
+	#projection.grid_mapping_name = "polar_stereographic"
+	#projection.latitude_of_projection_origin = 90.0
+	#projection.standard_parallel = 70.0
+	#projection.straight_vertical_longitude_from_pole = 135.0
+	#projection.longitude_of_projection_origin = -45.0
+	#projection.scaling_factor = 1.0
+	#projection.false_easting = 0.0
+	#projection.false_northing = 0.0
+	#projection.semimajor_radius = 6378273.0
+	#projection.semiminor_radius = 6356889.449
+	#projection.units = "meters"
+
+  #Add global attributes
 	f.author = "Alek Petty, Nathan Kurtz, Ron Kwok, Tom Neumann, Thorsten Markus"
 	f.contact = " alek.a.petty@nasa.gov"
-	f.description = "Gridded ICESat-2  "+monString+" sea ice thickness (and ancillary) data. Data are projected on a Polar Stereographic projection (EPSG:3411)."
+	f.description = "Gridded ICESat-2  "+monString+" sea ice thickness (and ancillary) data, calculated using ATL10 freeboards and NESOSIM snow depth/density estimates. Data are projected onto the NSIDC Polar Stereographic projection (EPSG:3411)."
 	f.reference = "Petty, A. A., N. T. Kurtz, R. Kwok, T. Markus, T. A. Neumann (2020). Winter Arctic sea ice thickness from ICESat-2 freeboards. J. Geophys. Res. Oceans."
 	
-	from datetime import datetime
+	
 	f.history = "Created " + datetime.today().strftime("%d/%m/%y")
 	#f.data_range = "Date range of the snow budgets: "+str(datesT[0])+'-'+str(datesT[-1])
 
@@ -395,8 +350,8 @@ def getMonthBinned(dataPathIS2v, figPathMv, variable, x, labelStr, snowVar, year
 
 	varBinMonth=np.zeros((numDays, xptsG.shape[0], xptsG.shape[1]))
 	varBinMonth[:]=np.nan
-	varBinSegMonth=np.zeros((numDays, xptsG.shape[0], xptsG.shape[1]))
-	varBinSegMonth[:]=np.nan
+	segBinMonth=np.zeros((numDays, xptsG.shape[0], xptsG.shape[1]))
+	segBinMonth[:]=np.nan
 	#print(varBinSegMonth)
 	for day in range(numDays):
 		dayStr='%02d' %(day+1)
@@ -409,7 +364,7 @@ def getMonthBinned(dataPathIS2v, figPathMv, variable, x, labelStr, snowVar, year
 			print('Got IS2 data!')
 		except:
 			continue
-		print('seg range 1:', np.amin(IS2dataDay['seg_length'].values), np.max(IS2dataDay['seg_length'].values))
+		#print('seg range 1:', np.amin(IS2dataDay['seg_length'].values), np.max(IS2dataDay['seg_length'].values))
 
 		# Replace negative values with 0 for regular gridding, but remove for the 'ice effective' gridding.
 		#if (x==1):
@@ -424,20 +379,15 @@ def getMonthBinned(dataPathIS2v, figPathMv, variable, x, labelStr, snowVar, year
 
 		print('Var shape after nan removal:', IS2dataDay[variable].count)
 		
-		print('seg range 2:', np.amin(IS2dataDay['seg_length'].values), np.max(IS2dataDay['seg_length'].values))
+		print('seg range:', np.amin(IS2dataDay['seg_length'].values), np.max(IS2dataDay['seg_length'].values))
 		print('val range:', np.amin(IS2dataDay[variable].values), np.amax(IS2dataDay[variable].values))
-		#IS2dataDay=IS2dataDay.where(IS2dataDay['seg_length']>4, drop=True)
-		#IS2dataDay=IS2dataDay.where(IS2dataDay['seg_length']<200, drop=True)
-		print('seg range 3 after seg filter:', np.amin(IS2dataDay['seg_length'].values), np.max(IS2dataDay['seg_length'].values))
-		print('val range after seg filter:', np.amin(IS2dataDay[variable].values), np.amax(IS2dataDay[variable].values))
-		print('Var shape after seg filter:', IS2dataDay.count)
 		
 
 		start = time.time()
 		print('Bin data...')
 		xptsRaw, yptsRaw=mPS(IS2dataDay['lon'].values, IS2dataDay['lat'].values)
-		varBinSeg, binsSeg, wherebinSeg = cF.bindataN(xptsRaw,yptsRaw, IS2dataDay['seg_length'].values, xptsG, yptsG, resolution*1000.)
-		varBin, bins, wherebin = cF.bindataSegment(xptsRaw, yptsRaw, IS2dataDay[variable].values, IS2dataDay['seg_length'].values, xptsG, yptsG, resolution*1000.)
+		segBin, binsSeg = cF.bindataN(xptsRaw,yptsRaw, IS2dataDay['seg_length'].values, xptsG, yptsG, resolution*1000.)
+		varBin, bins = cF.bindataSegWeighted(xptsRaw, yptsRaw, IS2dataDay[variable].values, IS2dataDay['seg_length'].values, xptsG, yptsG, resolution*1000.)
 		
 		end = time.time()
 		campaignTime = end-start
@@ -445,15 +395,15 @@ def getMonthBinned(dataPathIS2v, figPathMv, variable, x, labelStr, snowVar, year
 		print ('Proceesing time (minutes): '+campaignTimestr)
 		
 		if (variable=='ice_thickness_'+snowVar):
-			varBin[where(varBin>15)]=15
+			varBin[where(varBin>30)]=30
 			varBin[where(varBin<0.0)]=0
 		if (variable=='freeboard'):
 			varBin[where(varBin>5)]=5
 			varBin[where(varBin<0.0)]=0
 
-		minValsinBin=1
+		minValsinBin=2
 		varBin[where(bins<minValsinBin)]=np.nan
-		varBinSeg[where(bins<minValsinBin)]=np.nan
+		segBin[where(bins<minValsinBin)]=np.nan
 
 		# limit gridded data to latmin (default of 60N)
 		#varBin[where(latsG<latMin)]=np.nan
@@ -463,7 +413,7 @@ def getMonthBinned(dataPathIS2v, figPathMv, variable, x, labelStr, snowVar, year
 		#plotData(figPathMv, mPS, xptsRaw, yptsRaw, IS2dataDay['seg_length'].values, xptsG, yptsG, varBinSeg, labelStr+dayStr+'seg_length'+str(smoothingWindow)+str(resolution)+'km_seg'+str(segment))
 
 		varBinMonth[day]=varBin
-		varBinSegMonth[day]=varBinSeg
+		segBinMonth[day]=segBin
 
 		IS2dataRawMonth=concatenate([IS2dataRawMonth, IS2dataDay[variable].values])
 		xptsRawMonth=concatenate([xptsRawMonth, xptsRaw])
@@ -474,56 +424,49 @@ def getMonthBinned(dataPathIS2v, figPathMv, variable, x, labelStr, snowVar, year
 		IS2dataDay.close()
 
 		
-
-		#IS2dataRawMonth=IS2dataRawMonth.append(IS2dataDay[variable].values)
-
 	
 
 	#print(IS2dataRawMonth)
 	print('month')
 	print(varBinMonth)
 
-	# Produce a monthly composite
-	varSeg=varBinMonth*varBinSegMonth
-	#varSeg = ma.array(varBinMonth.filled(-999) * varBinSegMonth.filled(-999), mask=(varBinMonth.mask * varBinSegMonth.mask))
-	print(varSeg)
 
-	varBinMonthMean=np.nansum(varSeg, axis=0)/np.nansum(varBinSegMonth, axis=0)
+	varSegWeightedBinMonthMean=np.nansum(varBinMonth*segBinMonth, axis=0)/np.nansum(segBinMonth, axis=0)
+	segBinMonthMean=np.nanmean(segBinMonth, axis=0)
 
-	varBinSegMonthMean=np.nanmean(varBinSegMonth, axis=0)
-
-	# mask where less than a certian number of days (should be low based on the orbit cycle)
-	mindays=1
+	
 	# Number of valid data days across the month for each grid-cell
 	countDays=np.nansum(~np.isnan(varBinMonth), axis=0)
-	# Mask
-	varBinMonthMean[where(countDays<mindays)]=np.nan
-	varBinSegMonthMean[where(countDays<mindays)]=np.nan
+	
+	# mask where less than a certian number of days (should be low based on the orbit cycle)
+	mindays=1
+	varSegWeightedBinMonthMean[where(countDays<mindays)]=np.nan
+	segBinMonthMean[where(countDays<mindays)]=np.nan
 
 	if (variable=='ice_thickness_'+snowVar):
-		varBinMonthMean[where(varBinMonthMean>15)]=15
-		varBinMonthMean[where(varBinMonthMean<0)]=0
+		varSegWeightedBinMonthMean[where(varSegWeightedBinMonthMean>30)]=30
+		varSegWeightedBinMonthMean[where(varSegWeightedBinMonthMean<0)]=0
 	if (variable=='freeboard'):
-		varBinMonthMean[where(varBinMonthMean>3)]=3
-		varBinMonthMean[where(varBinMonthMean<0)]=0
+		varSegWeightedBinMonthMean[where(varSegWeightedBinMonthMean>5)]=5
+		varSegWeightedBinMonthMean[where(varSegWeightedBinMonthMean<0)]=0
 
-	monthMask = ma.zeros((varBinMonthMean.shape))
-	monthMask[np.isfinite(varBinMonthMean)]=1
+	monthMask = ma.zeros((varSegWeightedBinMonthMean.shape))
+	monthMask[np.isfinite(varSegWeightedBinMonthMean)]=1
 
-	varBinMonthMean = rasterio.fill.fillnodata(varBinMonthMean, mask=monthMask, max_search_distance=2, smoothing_iterations=1)
+	varSegWeightedBinMonthMean = rasterio.fill.fillnodata(varSegWeightedBinMonthMean, mask=monthMask, max_search_distance=2, smoothing_iterations=0)
 	
 	#from astropy.convolution import convolve
 	#from astropy.convolution import Gaussian2DKernel
 	#kernel = Gaussian2DKernel(varBinMonthMean, x_stddev=1)
 	#varBinMonthMean = convolve(varBinMonthMean, kernel)
 
-	varBinMonthMean[where(latsG>88)]=np.nan
+	varSegWeightedBinMonthMean[where(latsG>88)]=np.nan
 
-	plotData(figPathMv, mPS, xptsRawMonth, yptsRawMonth, IS2dataRawMonth, xptsG, yptsG, varBinMonthMean, labelStr+snowVar+variable+str(smoothingWindow)+str(resolution)+'km_seg'+str(segment)+'_month_')
+	plotData(figPathMv, mPS, xptsRawMonth, yptsRawMonth, IS2dataRawMonth, xptsG, yptsG, varSegWeightedBinMonthMean, labelStr+snowVar+variable+str(smoothingWindow)+str(resolution)+'km_seg'+str(segment)+'_month_')
 
 	#xptsRawMonth.close()
 	#yptsRawMonth.close()
-	return varBinMonthMean, varBinMonth, varBinSegMonthMean, lonsRawMonth, latsRawMonth, IS2dataRawMonth, countDays
+	return varSegWeightedBinMonthMean, varBinMonth, segBinMonthMean, xptsRawMonth, yptsRawMonth, lonsRawMonth, latsRawMonth, IS2dataRawMonth, countDays
 
 def getPSNgrid(mPS):
 	flat = open(dataPathCS2+'JPL/psn25lats_v3.dat', 'rb')
@@ -537,8 +480,8 @@ def getPSNgrid(mPS):
 
 	return lonsG, latsG, xptsG, yptsG
 
-def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist', beamStr='bnum1', day=1, 
-	smoothingWindow=200, segment=1):
+def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist', beamStr='bnum1', day=-1, 
+	fNum=-1, smoothingWindow=200, segment=1):
 	
 	month=date[0]
 	year=date[1]
@@ -576,20 +519,15 @@ def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist'
 	yearStr=str(year)
 
 	numDays=monthrange(year, month)[1]
+	print(numDays)
 	#numDays=2
 	
-	dayVarMonth=np.zeros((numDays, xptsG.shape[0], xptsG.shape[1]))
+	dayVarMonth=np.empty((numDays, xptsG.shape[0], xptsG.shape[1]))
 	dayVarMonth[:]=np.nan
-	dayCountMonth=np.zeros((numDays, xptsG.shape[0], xptsG.shape[1]))
-	dayCountMonth[:]=np.nan
+	#dayCountMonth=np.empty((numDays, xptsG.shape[0], xptsG.shape[1]))
+	#dayCountMonth[:]=np.nan
 
-	print 
-	# File numbers: -1 (default) = all files available
-	fNum=-1
-
-	# beams
-	# =['gt1l', 'gt1r', 'gt2l', 'gt2r', 'gt3l', 'gt3r']
-	#beams=['gt2r']
+	 
 	
 	labelStr=runStr+'-'+beamStr+'-'+yearStr+monLabel
 	
@@ -611,16 +549,16 @@ def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist'
 	#variables=['ice_thickness_'+snowVar,'ice_thickness_'+snowVar, 'freeboard', 'snow_depth_'+snowVar, 'ice_thickness_uncsys']
 	variables=['ice_thickness_'+snowVar, 'freeboard', 'snow_depth_'+snowVar, 'snow_density_'+snowDensityVar, 'ice_type', 'ice_thickness_uncsys']
 	#variables=['ice_thickness_'+snowVar, 'snow_depth_'+snowVar, 'snow_density_'+snowDensityVar, 'freeboard', 'ice_type']
-	versionStr='v1'
+	versionStr='v22'
 
 	varsBin=[]
 	for x in range(size(variables)):
 		variable=variables[x]
 		print(variable)
-		varBinMonthMean, varBinMonth, varBinSegMonthMean, lonsRawMonth, latsRawMonth, IS2dataRawMonth, countDays =getMonthBinned(dataPathIS2v, figPathMv, variable, x, labelStr, snowVar, yearStr, monStr, numDays, fNum, beamStr, resolution, segment, smoothingWindow, mPS,  xptsG, yptsG,lonsG, latsG)
+		varBinMonthMean, varBinMonth, segBinMonthMean, xptsRawMonth, yptsRawMonth, lonsRawMonth, latsRawMonth, IS2dataRawMonth, countDays =getMonthBinned(dataPathIS2v, figPathMv, variable, x, labelStr, snowVar, yearStr, monStr, numDays, fNum, beamStr, resolution, segment, smoothingWindow, mPS,  xptsG, yptsG,lonsG, latsG)
 		
 		varsBin.append(varBinMonthMean)
-		outputAlongTrackData(savePath, latsRawMonth, lonsRawMonth, IS2dataRawMonth, monStr, labelStr+snowVar+beamStr+'W'+str(smoothingWindow)+versionStr, smoothingWindow)
+		outputAlongTrackData(savePath, latsRawMonth, lonsRawMonth, IS2dataRawMonth, monStr, labelStr+variable+beamStr+'W'+str(smoothingWindow)+versionStr, smoothingWindow)
 			
 		if (x==size(variables)-1):
 			
@@ -629,27 +567,33 @@ def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist'
 			# Get mean day
 			#dayVarMonth=np.copy(varBinMonth)
 			for day in range(numDays):
+				#dayCountMonth[day][~np.isnan(varBinMonth[day])]=1.
+				#dayCountMonth[day][np.isnan(varBinMonth[day])]=0.
 				dayVarMonth[day][~np.isnan(varBinMonth[day])]=day+1
-				dayCountMonth[day][~np.isnan(varBinMonth[day])]=1
+
+			#varCount=np.nansum(dayCountMonth, axis=0)
 			varDay=np.nanmean(dayVarMonth, axis=0)
-			varCount=np.nansum(dayCountMonth, axis=0)
-			varDay[np.isnan(varBinMonthMean)]=np.nan
-			varCount[np.isnan(varBinMonthMean)]=np.nan
+			plotData(figPathMv, mPS, xptsRawMonth, yptsRawMonth, IS2dataRawMonth, xptsG, yptsG, countDays, labelStr+snowVar+'num_days_data'+str(smoothingWindow)+str(resolution)+'km_seg'+str(segment)+'_month_')
+			plotData(figPathMv, mPS, xptsRawMonth, yptsRawMonth, IS2dataRawMonth, xptsG, yptsG, varDay, labelStr+snowVar+'mean_day'+str(smoothingWindow)+str(resolution)+'km_seg'+str(segment)+'_month_')
+
+			#varDay[np.isnan(varBinMonthMean)]=np.nan
+			#varCount[np.isnan(varBinMonthMean)]=np.nan
+			
+			#print('varCount:', varCount)
 			print('varDay:', varDay)
-			print('varCount:', varCount)
-			varsBin.append(varCount)
+			varsBin.append(countDays)
 			varsBin.append(varDay)
 
-	
 	#varsBin.append(varDay)
 
-	outputBinnedData(savePath, latsG, lonsG, varsBin, monLabel, labelStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr)
+	outputBinnedData(savePath, xptsG, yptsG, latsG, lonsG, varsBin, monLabel, labelStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr)
 
 
 #-- run main program
+# Basically allows for main to be called from another script more easily.
 if __name__ == '__main__':
 	#main(month=10, year=2018)
-	#main((4, 2019))
+	#main((11, 2018))
 	dates=[(11, 2018), (12, 2018), (1, 2019), (2, 2019), (3, 2019), (4, 2019)]
 	#dates=[(11, 2018)]
 	with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:

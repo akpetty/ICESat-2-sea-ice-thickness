@@ -33,8 +33,9 @@ def get_hists(yearStr, monStr, varT, binVals, binWidth, maxValue):
         dFbeams = cF.getProcessedATL10ShotdataNCDF(dataOutPath, yearStr=yearStr, ssh_mask=1, monStr=monStr, dayStr=dayStr, vars=vars, fNum=fNum, beamStr=beam)
         print('Got data')
         dFbeams=dFbeams.where(dFbeams[varT]>0.0, drop=True)
+        dFbeams=dFbeams.where(dFbeams[varT]<30, drop=True)
         dFbeams=dFbeams.where(~np.isnan(dFbeams[varT]), drop=True)
-        dFbeams=dFbeams.where(dFbeams.seg_length>5, drop=True)
+        dFbeams=dFbeams.where(dFbeams.seg_length>4, drop=True)
 
         dFbeams=dFbeams.where(dFbeams.seg_length<200, drop=True)
         
@@ -61,7 +62,7 @@ fNum=-1 # -1== all files
 snowVar='NPdist'
 #var='freeboard'
 variables=['freeboard', 'snow_depth_'+snowVar, 'ice_thickness_'+snowVar]
-varStrs=['freeboard', 'snow depth', 'ice thickness']
+varStrs=['freeboard', 'snow depth', 'sea ice thickness']
 unit='m'
 labelStr=runStr+'-'+'-'+dayStr+'_'+beam+'bms'
 
@@ -69,7 +70,7 @@ figPath='/cooler/scratch1/aapetty/Figures/IS2/'+releaseStr+'/'+runStr+'/Dists/'
 baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
 dataOutPath=baseDataPath+releaseStr+'/'+runStr+'/raw/'
 
-region_label='Inner Arctic\n('+snowVar+')'
+region_label='Inner Arctic'
 
 regions=[10, 11, 12, 13, 15]
 
@@ -98,7 +99,7 @@ for x in range(3):
         monStr=monStrs[m]
         histVals[x, m], means[x, m] = get_hists(yearStrs[m], monStr, variables[x], binValsT, binWidthT, maxValues[x])
 
-
+savetxt(figPath+'/innerarctic_3vars_stats.txt', means)
 
 
 monthlabels=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -118,19 +119,23 @@ for x in range(3):
         ax.axvline(x=means[x, m], linestyle='--', linewidth=1.6, color=c_colors[m])
     
     if (x==0):
-        ax.annotate(region_label, xy=(0.98, 0.85), xycoords='axes fraction', horizontalalignment='right', verticalalignment='bottom')
+        ax.annotate(region_label, xy=(0.98, 0.87), xycoords='axes fraction', horizontalalignment='right', verticalalignment='bottom')
      
     if (x==2):
         leg = ax.legend(loc=1, ncol=2,handlelength=1.5, labelspacing=0.2 , numpoints=1, frameon=False)
-        ax.set_xlim(0, maxValues[x])
-
+    
+    ax.set_xlim(0, maxValues[x])
+    ax.set_ylim(0, 0.07)
+    #ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(0.02))
+    ax.grid(which='major', axis='both', linestyle='--')
 
     ax.set_xlabel(varStrs[x]+' (m)')
     #if (x==1):
     ax.set_ylabel('Probability density')   
 
-subplots_adjust(bottom=0.07, left=0.15, right=0.97, top=0.98, hspace=0.25)
-plt.savefig(figPath+'/beamTest_'+labelStr+snowVar+'RegionShotSeg_'+str(size(monStrs))+'InnerArctic.png', dpi=500)
+subplots_adjust(bottom=0.065, left=0.12, right=0.97, top=0.98, hspace=0.25)
+plt.savefig(figPath+'/beamTest_'+labelStr+snowVar+'RegionShotSeg_'+str(size(monStrs))+'InnerArcticMax30.png', dpi=500)
 
 
 

@@ -132,20 +132,20 @@ def main(CS2PRODUCT, month):
 	#ice_thicknessCS2=ice_thicknessCS2-0.4
 
 	relStr='rel002'
-	runStr='run10'
+	runStr='run12'
 
 	figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Maps/'
 
 	beamStr='bnum1'
 
 	savePath=dataPathIS2+'/'+relStr+'/'+runStr+'/products/'
-	smoothingWindow=400
+	smoothingWindow=200
 	resolution=25.
 
 	dayStr='*'
 
 	segment=1
-	versionStr='vInt8'
+	versionStr='v1'
 
 	#snowVar='NPdist'
 	labelStr=runStr+'-'+beamStr+'-'+yearStr+monLabel+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr
@@ -274,7 +274,7 @@ def main(CS2PRODUCT, month):
 
 
 if __name__ == '__main__':
-	#months=[11]
+	months=[11, 4]
 	#for month in months:
 	#	main('GSFC', month)
 	products=[ 'CPOM', 'JPL', 'AWI', 'GSFC']

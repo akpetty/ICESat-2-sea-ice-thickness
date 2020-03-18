@@ -24,7 +24,7 @@ cF.reset_matplotlib()
 
 #mapProj = Basemap(epsg=3411,resolution='l', llcrnrlon=269.26, llcrnrlat=45., urcrnrlon=95.34, urcrnrlat=45.37)
 mapProj = Basemap(projection='npstere',boundinglat=56,lon_0=0, resolution='l', round=False  )
-
+#mapProj = Basemap(epsg=3411,resolution='l', llcrnrlon=279.26, llcrnrlat=33.92, urcrnrlon=102.34, urcrnrlat=31.37)	
 def getIS2(savePathT, outStringT, variable):
 
     dIS2 = xr.open_dataset(savePathT+'IS2ATL10_'+outStringT+'.nc')
@@ -44,24 +44,22 @@ baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
 iceTypePath='/cooler/scratch1/aapetty/Data/ICETYPE/OSISAF/'
 
 relStr='rel002'
-runStr='run11'
+runStr='run12'
 
 figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Maps/'
 savePath=baseDataPath+'/'+relStr+'/'+runStr+'/products/'
-smoothingWindow=400
+smoothingWindow=200
 resolution=25.
 beamStr='bnum1'
-dayStr='*'
-#dayStr=str(day)
 snowVar='NPdist'
-versionStr='vInt9'
+versionStr='v22'
 segment=1
 
 
-variables=['freeboard', 'snow_depth', 'ice_thickness', 'ice_thickness_unc', 'snow_density','ice_type', 'num_binned_days', 'mean_day_of_month']
-cbarLabels=['freeboard (m)', 'snow depth (m)', 'ice thickness (m)', 'uncertainity (m)', 'snow density (kg/m3)','ice type', 'num days in bin', 'mean day of month']
-mStr='Apr'
-yearStr='2019'
+variables=['freeboard', 'snow_depth', 'ice_thickness', 'ice_thickness_unc', 'snow_density','ice_type', 'mean_day_of_month', 'num_binned_days']
+cbarLabels=['freeboard (m)', 'snow depth (m)', 'ice thickness (m)', 'uncertainity (m)', r'snow density (kg/m$^3$)','ice type', 'mean day of month', 'num valid days in month']
+mStr='Nov'
+yearStr='2018'
 labelStr=runStr+'-'+beamStr+'-'+yearStr+mStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr
 # DATE INFO
 griddedVar=[]
@@ -70,22 +68,23 @@ for variableT in variables:
 	
 	xptsIS2, yptsIS2,griddedVarT = getIS2(savePath, labelStr, variableT)
 	griddedVar.append(griddedVarT)
-	
+
+griddedVar[7]=ma.masked_where(griddedVar[7]<1, griddedVar[7])
+
 cbarx=[0.03, 0.276, 0.525, 0.77, 0.03, 0.276, 0.525, 0.77]
 cbary=[0.555, 0.555, 0.555, 0.555, 0.08, 0.08, 0.08, 0.08]
-minval=[0, 0, 0, 0, 200, 0, 0, 0]
-maxval=[0.6, 0.4, 4, 1.5, 350,1, 20, 31]
+minval=[0, 0, 0, 0, 200, -0.5, 0, 0]
+maxval=[0.6, 0.4, 4, 1.5, 350,1.5, 30, 20]
+numTicks=[4, 5, 5, 4, 4, 2, 4, 5]
 numConts=[10, 10, 10, 10, 10, 3, 10, 10]
-cmaps=[cm.YlOrRd, cm.BuPu,  cm.cubehelix_r, cm.RdYlBu_r, cm.viridis, cm.Greens, cm.Reds, cm.magma]
+cmaps=[cm.YlOrRd, cm.BuPu,  cm.cubehelix_r, cm.RdYlBu_r, cm.viridis, cm.Reds, cm.plasma_r, cm.magma_r]
 
 fig, axs = plt.subplots(nrows=2, ncols=4, figsize=(8, 5.2))
 
 for i in range(size(variables)):
 	ax=axs.flatten()[i]
+		
 	print(i)
-	#if i == 5:
-	#	ax.set_visible(False)
-	#else:
 	sca(ax)
 	#im1 = mapProj.contourf(xptsIS2 , yptsIS2, ice_thicknessIS2s[i], levels=np.arange(minval, maxval+0.05, 0.5), cmap=cm.viridis , vmin=minval, vmax=maxval,extend='both', shading='gouraud', edgecolors='None', zorder=4, rasterized=True)
 	im1 = mapProj.contourf(xptsIS2 , yptsIS2, griddedVar[i], levels=np.linspace(minval[i], maxval[i], numConts[i]), cmap=cmaps[i], extend='both', shading='gouraud', edgecolors='None', zorder=4, rasterized=True)
@@ -96,26 +95,20 @@ for i in range(size(variables)):
 
 	mapProj.fillcontinents(color='0.9',lake_color='grey', zorder=5)
 	mapProj.drawcoastlines(linewidth=0.25, zorder=5)
-	ax.annotate('('+chr(97+i)+') '+variables[i], xy=(0.01, 0.935),xycoords='axes fraction', horizontalalignment='left', verticalalignment='bottom', fontsize=8, zorder=10)
-	#im11 = mapProj.contour(xptsc , yptsc, iceconcs[i],levels=0.15, colors='k', linewidths=0.8, zorder=5, alpha=1)
-	#im11 = mapProj.contour(xptsc , yptsc, iceconcs[i],levels=0.5, colors='r', linewidths=0.5, zorder=5, alpha=1)
-	#im21 = mapProj.contour(xptst , yptst, icetypes[i],levels=0.5, colors='k', linewidths=0.4, zorder=5, alpha=0.7)
+	ax.annotate('('+chr(97+i)+') '+variables[i], xy=(0.03, 0.03),backgroundcolor='w', xycoords='axes fraction', horizontalalignment='left', verticalalignment='bottom', fontsize=8, zorder=10)
 
-	#m.contour(xpts , ypts, region_maskAO, 1, colors='k', linestyles='-',linewidths=0.4, zorder=4)
-	#m.contour(xpts , ypts, region_maskCA, 1, colors='k', linestyles='-',linewidths=0.4, zorder=4)
-	#m.contour(xpts , ypts, region_maskPS, 1, colors='k', linestyles='-',linewidths=0.4, zorder=4)
-	#m.contour(xpts , ypts, region_maskNA, 1, colors='k', linestyles='-',linewidths=0.4, zorder=4)
 	cax = fig.add_axes([cbarx[i], cbary[i], 0.2, 0.025])
 
 	cbar = colorbar(im1,cax=cax, orientation='horizontal', extend='both', use_gridspec=True)
-	cbar.set_label(cbarLabels[i], labelpad=-1)
+	cbar.set_label(cbarLabels[i], labelpad=1)
 	#cbar.ax.locator_params(nbins=4)
-	cbar.set_ticks([minval[i], maxval[i]])
-	#cbar.set_ticklabels(np.linspace(minval[i], maxval[i]+1, numConts[i]))
 
-#ADD COLORBAR TO MAP
-
-
+	cbar.set_ticks(np.linspace(minval[i], maxval[i], numTicks[i]) )
+	if (i==5):
+		cbar.set_ticklabels(['FYI', 'MYI'])
+	
+#ax=axs.flatten()[7]
+#fig.delaxes(ax)
 
 
 subplots_adjust(bottom=0.08, left=0.01, top = 0.99, right=0.99, wspace=0.02, hspace=0.08)
