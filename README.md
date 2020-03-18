@@ -32,7 +32,9 @@ Also included are some demo plotting scripts:
 ```/Code/Plotting/``` 
 which ican be used to generate some of the figures included in Petty et al., (2020). 
  
-![Sea ice thickness flowchart](IS2flowchart.png?raw=true "Sea ice thickness processing flowchart"){height=70%}
+![Sea ice thickness flowchart](IS2flowchart.png){height=70%}
+
+<img src="IS2flowchart.png" width="400">
 
 ## Input data
 
