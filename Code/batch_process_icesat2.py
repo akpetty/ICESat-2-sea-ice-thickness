@@ -6,8 +6,8 @@
 	Input:
 		ICESat-2 ATL10 freeboards
 		NESOSIM snow depths/densities
-		OSISAF ice type
-
+		Warren snow depth/density
+		OSISAF sea ice type
 
 	Output:
 		Ice thickness using various snow depth assumptions in netCDF (xarray) format.
@@ -25,12 +25,10 @@
 	More information on installation is given in the README file.
 
 	Update history:
-		01/06/2019: Version 1.
+		01/06/2020: Version 1.
     
 """
 
-#import matplotlib, sys
-#matplotlib.use('Agg')
 from mpl_toolkits.basemap import Basemap
 import numpy as np
 import numpy.ma as ma
@@ -63,27 +61,26 @@ def main(fileT, beamNum):
 	# JPL: W99mod5 (bus using ice type fraction), 
 	# AWI: W99mod5, 882, 917 kg/m3 ice density
 
-	regionflags=1
-	icetype=1
-	warrensnow=1
-	modwarrensnow5=1
-	modwarrensnow7=1
-	nesosim=1
-	nesosimdisttributed=1
-	nesosimdisttributedrho2=1
-	nesosimdisttributedrho3=1
-	nesosimdisttributedkwok=1
-	
-	modwarrendisttributed=1
-	modwarren7disttributed=1
-	modwarrensnow5distributedrho3=1
-	cpomprocessing=1
-	nasaprocessing=1
-	awiprocessing=1
-	uncertaintycalc=1
+	# I'm sure there is a better way of doing this!..For testing I would turn off a lot of these to speed up computation time.
+	regionflags=True
+	icetype=True
+	warrensnow=True
+	modwarrensnow5=True
+	modwarrensnow7=True
+	nesosim=True
+	nesosimdisttributed=True
+	nesosimdisttributedrho2=True
+	nesosimdisttributedrho3=True
+	nesosimdisttributedkwok=True
+	modwarrendisttributed=True
+	modwarren7disttributed=True
+	modwarrensnow5distributedrho3=True
+	cpomprocessing=True
+	nasaprocessing=True
+	awiprocessing=True
+	uncertaintycalc=True
 	# uncertainity calc needs the distributed nesosim (or select another primary thickness variable)
-	saveRaw=0
-	saveNetCDFX=1
+	saveNetCDFX=True
 	
 	
 	# Map projection
@@ -112,7 +109,7 @@ def main(fileT, beamNum):
 	print(beamStr)
 
 	# ----- Region flags -------
-	if (regionflags==1):
+	if regionflags:
 		print ('Assign NSIDC region mask...')
 		dF=cF.assignRegionMask(dF, mapProj, ancDataPath=ancDataPath)
 		#print(dF.head(3)) 
@@ -120,7 +117,7 @@ def main(fileT, beamNum):
 
 	
 	# ----- Get colocated ice type data -------
-	if (icetype==1):
+	if icetype:
 		start = time.time()
 		print ('Processing ice type data...')
 		dF = cF.getIceType(dF, iceTypePath, mapProj, res=4, returnRaw=0)
@@ -128,7 +125,7 @@ def main(fileT, beamNum):
 		#dF.head(3)
 	
 	#------- Get Warren snow depths -----------
-	if (warrensnow==1):
+	if warrensnow:
 		start = time.time()
 		print ('Processing Warren snow depths...')
 		dF = cF.getWarrenData(dF, outSnowVar='snow_depth_W99', outDensityVar='snow_density_W99')
@@ -136,7 +133,7 @@ def main(fileT, beamNum):
 		#dF.head(3)
 	
 	#------- Get modified (50%) Warren snow depths -----------
-	if (modwarrensnow5==1):
+	if modwarrensnow5:
 		start = time.time()
 		print ('Processing Warren mod5 snow depths...')
 		dF = cF.getWarrenData(dF, outSnowVar='snow_depth_W99mod5', outDensityVar='None', modFactor=0.5)
@@ -144,7 +141,7 @@ def main(fileT, beamNum):
 		#dF.head(3)
 	
 	#------- Get modified (%70) Warren snow depths -----------
-	if (modwarrensnow7==1):
+	if modwarrensnow7:
 		start = time.time()
 		print ('Processing Warren mod7 snow depths...')
 		dF = cF.getWarrenData(dF, outSnowVar='snow_depth_W99mod7', outDensityVar='None', modFactor=0.7)
@@ -152,7 +149,7 @@ def main(fileT, beamNum):
 		#dF.head(3)
 	
 	#------- Get regional (CPOM) modified (%50) Warren snow depths -----------
-	if (cpomprocessing==1):
+	if cpomprocessing:
 		start = time.time()
 		print ('Processing CPOM Warren snow depths...')
 		dF = cF.getWarrenDataCPOM(dF, outSnowVar='snow_depth_W99mod5r', outDensityVar='snow_density_W99r', modFactor=0.5)
@@ -160,7 +157,7 @@ def main(fileT, beamNum):
 		#dF.head(3)
 
 	#------- Get NESOSIM snow depths -----------
-	if (nesosim==1):
+	if nesosim:
 		# ----- Get dates and coincident NESOSIM file -------
 		print ('Grabbing NESOSIM file and dates...')
 		dateStr= cF.getDate(dF['year'].iloc[0], dF['month'].iloc[0], dF['day'].iloc[0])
@@ -175,7 +172,7 @@ def main(fileT, beamNum):
 		#dF.head(3)
 	#------- Get distributed NESOSIM snow depths -----------
 
-	if (modwarrendisttributed==1):
+	if modwarrendisttributed:
 		start = time.time()
 		print ('Processing distributed mod Warren snow depths...')
 		dF = cF.distributeSnow(dF, inputSnowDepth='snow_depth_W99mod5', outSnowVar='snow_depth_W99mod5dist', consIterations=11, gridSize=100000)
@@ -184,14 +181,14 @@ def main(fileT, beamNum):
 		print ('Processed distributed mod Warren snow depths in '+str(np.round((time.time()-start), 2))+' seconds')
 		#dF.head(3)
 
-	if (nesosimdisttributed==1):
+	if nesosimdisttributed:
 		start = time.time()
 		print ('Processing distributed NESOSIM snow depths...')
 		dF = cF.distributeSnow(dF, inputSnowDepth='snow_depth_N', outSnowVar='snow_depth_NPdist', consIterations=11, gridSize=100000)
 		print ('Processed distributed NESOSIM snow depths in '+str(np.round((time.time()-start), 2))+' seconds')
 		#dF.head(3)
 
-	if (nesosimdisttributedkwok==1):
+	if nesosimdisttributedkwok:
 		start = time.time()
 		print ('Processing kwok distributed NESOSIM snow depths...')
 		dF = cF.distributeSnowKwok(dF, inputSnowDepth='snow_depth_N', outSnowVar='snow_depth_Kdist')
@@ -200,60 +197,55 @@ def main(fileT, beamNum):
 		
 	#-------Thickness conversion-----------
 	print ('Processing thickness conversions...')
-	if (warrensnow==1):
+	if warrensnow:
 		# Convert freeboard to thickness using Warren data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99', rhoi=1)
 
-	if (modwarrensnow5==1):	
+	if modwarrensnow5:	
 		# Convert freeboard to thickness using modified Warren data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod5', rhoi=1)
 		#dF.head(3)
 
-	if (modwarrensnow7==1):
+	if modwarrensnow7:
 		# Convert freeboard to thickness using modified Warren data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod7', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod7', rhoi=1)
 		#dF.head(3)
 
-	if (nesosim==1):
+	if nesosim:
 		# Convert freeboard to thickness using NESOSIM data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_N', snowDensityVar='snow_density_N', outVar='ice_thickness_N', rhoi=1)
 
-	if (nesosimdisttributed==1):
+	if nesosimdisttributed:
 		# Convert freeboard to thickness using distributed NESOSIM data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_NPdist', snowDensityVar='snow_density_N', outVar='ice_thickness_NPdist', rhoi=1)
 
-	if (nesosimdisttributedrho2==1):
+	if nesosimdisttributedrho2:
 		# Convert freeboard to thickness using distributed NESOSIM data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_NPdist', snowDensityVar='snow_density_N', outVar='ice_thickness_NPdistrho2', rhoi=2)
 
-	if (nesosimdisttributedrho3==1):
+	if nesosimdisttributedrho3:
 		# Convert freeboard to thickness using distributed NESOSIM data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_NPdist', snowDensityVar='snow_density_N', outVar='ice_thickness_NPdistrho3', rhoi=3)
 		
-	if (nesosimdisttributedkwok==1):
+	if nesosimdisttributedkwok:
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_Kdist', snowDensityVar='snow_density_N', outVar='ice_thickness_Kdist', rhoi=1)
 		
-	if (awiprocessing==1):
+	if awiprocessing:
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5', snowDensityVar='snow_density_W99', outVar='ice_thickness_awi', rhoi=2)
 		
-	if (nasaprocessing==1):
+	if nasaprocessing:
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5', snowDensityVar='snow_density_W99', outVar='ice_thickness_nasa', rhoi=1)
 	
-	if (cpomprocessing==1):
+	if cpomprocessing:
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5r', snowDensityVar='snow_density_W99r', outVar='ice_thickness_cpom', rhoi=2)
 
-	
-	if (modwarrendisttributed==1):
-		#print ('Converting freeboards to thickness 3..')
+	if modwarrendisttributed:
 		# Convert freeboard to thickness using distributed NESOSIM data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5dist', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod5dist', rhoi=1)
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5rdist', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod5rdist', rhoi=1)
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod7dist', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod7dist', rhoi=1)
 				
-
-		#dF.head(3)
-		#print ('Converted freeboards to thickness in '+str(np.round((time.time()-start), 2))+' seconds')
-	if (modwarrensnow5distributedrho3==1):	
+	if modwarrensnow5distributedrho3:	
 		# Convert freeboard to thickness using modified Warren data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5dist', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod5distrho2', rhoi=2)
 		#dF.head(3)
@@ -262,7 +254,7 @@ def main(fileT, beamNum):
 	#-------Uncertainty calculation-----------
 	
 	
-	if (uncertaintycalc==1):
+	if wuncertaintycalc:
 		print ('Processing thickness uncertainity...')
 		# Convert freeboard to thickness using distributed NESOSIM data
 		dF = cF.getThicknessUncertainty(dF, snowDepthVar='snow_depth_NPdist', snowDensityVar='snow_density_N',iceDensityVar='ice_density_1', outVar='ice_thickness_unc')
@@ -281,11 +273,6 @@ def main(fileT, beamNum):
 	#plotMap4(dF, mapProj, figPath, dateStr+'_F'+str(fileNum)+'NKdist', vars=['freeboard', 'snowDepthNKdist', 'snowDensityNK', 'iceThicknessNKdist'])
 
 	#-------Output-----------
-	if (saveRaw==1):
-		outStr=fileT.split("/")[-1][:-3]
-		print ('Saving data file to:', dataOutPath+'IS2'+outStr+'_bnum'+str(beamNum)+beamStr)
-		dF.to_pickle(dataOutPath+'IS2'+outStr+'_bnum'+str(beamNum)+beamStr)
-		print ('Saved data')
 	if (saveNetCDFX==1):
 		outStr=fileT.split("/")[-1][:-3]
 		print ('Saving netCDF (xarray) data file to:', dataOutPath+'IS2'+outStr+'_bnum'+str(beamNum)+beamStr)
@@ -305,9 +292,6 @@ if __name__ == '__main__':
 	runStr='run12'
 
 	ATL10path='/cooler/I2-ASAS/'+releaseStr+'/ATL10-01/'
-
-	# Dates to process
-	#dateStr='2019*[01-04]' 
 
 	global figPath, dataOutPath
 	figPath=figPathM+releaseStr+'/'+runStr+'/'
@@ -354,10 +338,6 @@ if __name__ == '__main__':
 		#result5=executor.map(main, ATL10files, repeat(beamNums[4]))
 		#result6=executor.map(main, ATL10files, repeat(beamNums[5]))
 	
-	#end = time.time()
-	#campaignTime = end-start
-	#campaignTimestr=str(np.round(campaignTime/(60.), 2))
-	#print ('Proceesing time (minutes): '+campaignTimestr)
 
 
 

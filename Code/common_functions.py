@@ -1,3 +1,26 @@
+""" common_functions.py
+    
+    Common functions used in the ICESat-2 sea ice thickness scripts.
+    Initial code written by Alek Petty (01/06/2019)
+    
+    Python dependencies:
+        See below for the relevant module imports. Of note:
+        xarray/pandas
+        netCDF4
+        matplotlib
+        basemap
+        common_functions function library
+        Optional (for naive parralel processing):
+            itertools
+            concurrent.futures
+    More information on installation is given in the README file.
+
+    Update history:
+        01/06/2020: Version 1.
+    
+"""
+
+
 # Load Python modules
 import matplotlib
 from mpl_toolkits.basemap import Basemap, shiftgrid
@@ -9,23 +32,26 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import h5py
-#import os
-#from glob import glob
-#import netCDF4 as nc4
 from scipy.interpolate import griddata
 from netCDF4 import Dataset
-#import dask.dataframe as dd
 import dask.array as da
 from scipy import stats
 from numba import jit, prange
 
 
 def getIS2gridded(savePathT, outStringT, mapProj, variable='ice_thickness', poleHole=88):
+    """ Read in gridded ICESat-2 data
+    
+    Args:
+        savePathT (str): gridded data path
+        outStringT (str): label
+        mapProj (basemap): map projection
+
+    """
 
     print(savePathT+'IS2ATL10_'+outStringT+'.nc')
     dIS2 = xr.open_dataset(savePathT+'IS2ATL10_'+outStringT+'.nc')
 
-    # Get NESOSIM coordinates (constant with time)
     varIS2 = array(dIS2[variable])
     latsIS2 = array(dIS2.latitude)
     lonsIS2 = array(dIS2.longitude)
@@ -36,11 +62,18 @@ def getIS2gridded(savePathT, outStringT, mapProj, variable='ice_thickness', pole
     return xptsT, yptsT, lonsIS2, latsIS2, varIS2 
 
 def getIS1gridded(savePathT, outStringT, mapProj,poleHole=85.5):
+    """ Read in gridded ICESat-2 data
+    
+    Args:
+        savePathT (str): gridded data path
+        outStringT (str): label
+        mapProj (basemap): map projection
+
+    """
 
     print(savePathT+'IS1_'+outStringT+'.nc')
     dIS1 = xr.open_dataset(savePathT+'IS1_'+outStringT+'.nc')
 
-    # Get NESOSIM coordinates (constant with time)
     thicknessIS1 = array(dIS1.ice_thickness)
 
     latsIS1 = array(dIS1.latitude)
@@ -51,13 +84,18 @@ def getIS1gridded(savePathT, outStringT, mapProj,poleHole=85.5):
     return xptsT, yptsT, lonsIS1, latsIS1, thicknessIS1
 
 def getCS2gsfc(yearStr, mStr):
+    """ Read in GSFC CryoSat-2 sea ice thickness data
+    
+    Args:
+        yearStr (str): year
+        mStr (str): month
+
+    """
 
     f = Dataset(dataPathCS2+'/'+yearStr+'/RDEFT4_'+yearStr+mStr+'15.nc', 'r')
     thicknessCS = f.variables['sea_ice_thickness'][:]
     thicknessCS=ma.masked_where(thicknessCS<0, thicknessCS)
     thicknessCS=ma.masked_where(np.isnan(thicknessCS), thicknessCS)
-    #thicknessCS=thicknessCS.filled(0)
-    #thicknessCS=ma.masked_where(region_mask!=1, thicknessCS)
 
     latsCS = f.variables['lat'][:]
     lonsCS = f.variables['lon'][:]
@@ -452,8 +490,6 @@ def getProcessedIS1(dataPathT, campaignStr, vars=[], fNum=-1, smoothingWindow=0)
         #IS2dataAll = pd.read_pickle(files[0])
     print(IS1dataAll.info)
     
-    #IS2dataAll=IS2dataAll[vars]
-    #print(IS2dataAll.info)
 
 
     if (smoothingWindow>0):
@@ -481,10 +517,10 @@ def getProcessedIS1(dataPathT, campaignStr, vars=[], fNum=-1, smoothingWindow=0)
 
 def reset_matplotlib():
     """
-    Reset matplotlib to a common default.
+        Reset matplotlib to a common default.
+    
     """
-    # Set all default values.
-    #mpl.rcdefaults()
+    
     # Force agg backend.
     plt.switch_backend('agg')
     # These settings must be hardcoded for running the comparision tests and
@@ -499,8 +535,6 @@ def reset_matplotlib():
     rcParams['font.size']=9
     rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
 
-
-
 def getNesosimDates(dF, snowPathT):
     """ Get dates from NESOSIM files"""
 
@@ -512,18 +546,11 @@ def getNesosimDates(dF, snowPathT):
     dateStr= getDate(dF['year'].iloc[0], dF['month'].iloc[0], dF['day'].iloc[0])
 
     print ('Date:', yearS, monthS, dayS)
-    #print (dateStr)
-    #print (dF['year'].iloc[-1], dF['month'].iloc[-1], dF['day'].iloc[-1])
-
     # Find the right NESOSIM data file based on the freeboard dates
     if (monthS<6):
         fileNESOSIM = glob(snowPathT+'*'+str(yearS)+'.nc')[0]
     else:
         fileNESOSIM = glob(snowPathT+'*'+str(yearS)+'*.nc')[0]
-    #if (monthS>8):
-    #fileNESOSIM = glob(snowPathT+'*'+str(yearS)+'-*'+'.nc')[0]
-    #else:
-    #   fileNESOSIM = glob(snowPathT+'*'+str(yearS-1)+'-*'+'.nc')[0]
 
     if (monthS>5 & monthF==5):
         print ('WARNING! LACK OF SNOW DATA')
@@ -568,37 +595,9 @@ def plotMap4(dF, mapProj, figPathT, outStr, vars=['freeboard', 'snowDepthN', 'sn
     plt.savefig(figPathT+'/test'+outStr+'4.png')
     plt.close('all')
 
-def plotMap(dF, mapProj, figPathT, outStr, var):
-    """ plot data on map as a first check"""
-    # Change var string to variable of choice (units are meters)
-
-    rcParams['axes.labelsize'] = 8
-    rcParams['xtick.labelsize'] = 8
-    rcParams['ytick.labelsize'] = 8
-    rcParams['font.size'] = 8
-    rcParams['lines.linewidth'] = 1
-    rcParams['patch.linewidth'] = 1
-    rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
-
-
-    fig = figure(figsize=(5,5))
-    im1=hexbin(dF['xpts'].values, dF['ypts'].values, C=dF[var].values, gridsize=100, 
-               cmap=cm.viridis, zorder=2, rasterized=True)
-    #m.fillcontinents(color='',lake_color='grey', zorder=3)
-    mapProj.drawcoastlines(linewidth=0.25, zorder=5)
-    mapProj.drawparallels(np.arange(90,-90,-5), linewidth = 0.25, zorder=10)
-    mapProj.drawmeridians(np.arange(-180.,180.,30.), latmax=85, linewidth = 0.25, zorder=10)
-
-    cax = fig.add_axes([0.25, 0.15, 0.5, 0.04])
-    cbar = colorbar(im1,cax=cax, orientation='horizontal', extend='both',use_gridspec=True)
-    cbar.set_label(var+' (m)', labelpad=3, fontsize=14)
-
-    subplots_adjust(left = 0.01, right = 0.99, bottom=0.2, top = 0.99)
-    plt.savefig(figPathT+'/test'+var+outStr+'.png')
-    plt.close
-
 def correlateVars(var1, var2):
-#correlate two variables
+    """correlate two variables"""
+
     trend, intercept, r_a, prob, stderr = stats.linregress(var1, var2)
     sig = 100.*(1.-prob)
     return trend, sig, r_a, intercept 
@@ -674,7 +673,6 @@ def turningpoints(yvals, xvals):
             modes.append(xvals[tpt])
 
     return dx, dx2, modes
-
 
 def get_region_mask_sect_labels(region):
 
@@ -872,7 +870,7 @@ def distributeSnowKwok(dF, inputSnowDepth='snowDepthN', outSnowVar='snowDepthKdi
 
     Args:
         dF (data frame): Pandas dataframe
-dis
+
     Returns:
         dF (data frame): Pandas dataframe updated to include colocated NESOSIM (and dsitributed) snow data
         
@@ -898,7 +896,6 @@ dis
     dF.head(3)
 
     return dF
-
 
 def sigmoidFunc(x):
     return 1./(1+exp(-5*(x-0.7)))
@@ -1129,80 +1126,6 @@ def snowDistributionV4(meanSnowDepthT, freeboardsT, meanFreeboardT, numIter=11):
     return distSnow
 
 
-def snowDistributionFall(snowDepthT, freeboardT, meanFreeboardT, xmin, xmax):
-    """
-    Snow distribution for fall periods to match with mooring sea ice draft
-    Written by Nathan Kurtz (summer 2018)
-
-    Args:
-        snowDepthT (var): along track snow depth (m)
-        freeboardT (var): along track freeboard (m)
-        meanFreeboardT (var): mean freebaord (m)
-        xmin (var): minimum x position
-        xmax (var): maximum x position
-
-    Returns:
-        snowDepthDist (var): along track snow depth distributed to higher resolution
-        
-    """
-
-    fb_cutoff = 0.71*100*snowDepthT +0.20*100*meanFreeboardT +14.6
-    fb_cutoff_thin = 0.5*fb_cutoff  #Testing for now to geta thickness for thin snow
-    hs_thick_adj = 0.0
-    hs_thick_prev_adj = 0.0
-    
-    for iter in range(11):  #Set this to zero to not do an iterative loop to conserve snow
-        hs_thick = 1.4*snowDepthT*100 + 0.83 +hs_thick_adj #good way for test2
-        #hs_thick = 1.5*snowDepthT*100 +hs_thick_adj #Test 3 version which didn't really do much at all
-
-        new_snow = np.zeros(len(freeboardT))
-        scount=0
-        new_snow_thick = new_snow
-        scount_thick = 0
-        
-        for in2 in range(xmin,xmax): #len(freeboardT)): #Apparently freeboardT doesn't start with index 0!
-
-            if freeboardT[in2]*100.0 < fb_cutoff_thin:  #Adding more snow to thin ice, and not conserving snow depth
-                hs_thick_orig = 1.4*snowDepthT*100 + 0.83   #good way for test2
-                #hs_thick_orig = 1.5*snowDepthT*100  #Test 3 version which didn't really do much
-                hs_thin = 0.7*hs_thick_orig * freeboardT[in2]*100.0/fb_cutoff_thin  #linear way but adding more snow, good way for test2 was using 0.7*hs_thick_orig
-
-                hs_use = hs_thin
-                if freeboardT[in2]*100.0 >= fb_cutoff: hs_use = hs_thick    
-                hs_use = hs_use*0.01  #convert back to meters
-                if hs_use > freeboardT[in2]: hs_use = freeboardT[in2]
-
-                new_snow[scount] = hs_use
-                scount=scount+1
-
-            else:   #Else regular case for thicker ice
-
-                hs_thin = hs_thick * freeboardT[in2]*100.0/fb_cutoff    #linear way
-                
-
-                hs_use = hs_thin
-                if freeboardT[in2]*100.0 >= fb_cutoff: hs_use = hs_thick    
-                hs_use = hs_use*0.01  #convert back to meters
-                if hs_use > freeboardT[in2]: hs_use = freeboardT[in2]
-
-                new_snow[scount] = hs_use
-                scount=scount+1
-
-                new_snow_thick[scount_thick] = hs_use
-                scount_thick = scount_thick+1
-
-
-        break #do this to not conserve snow
-        #Calculate hs_thick_adj
-        if scount_thick > 1: hs_thick_adj = (snowDepthT - np.mean(new_snow_thick[0:scount_thick-1]))*100.0 + hs_thick_prev_adj
-        if abs(hs_thick_adj-hs_thick_prev_adj) < 0.1:
-            break 
-        hs_thick_prev_adj = hs_thick_adj
-
-    snowDepthDist = new_snow
-
-    return snowDepthDist
-
 #@jit
 def assignRegionMask(dF, mapProj, ancDataPath='../../AncData/'):
     """
@@ -1299,8 +1222,6 @@ def getIceTypeRaw(iceTypePathT, mapProj, dayStr, monStr, yearStr, res=1):
     xpts_type, ypts_type = mapProj(lons, lats)
 
     return xpts_type, ypts_type, ice_typeT
-
-
 
 def getIceType(dF, iceTypePathT, mapProj, res=1, returnRaw=1):
     """
@@ -1875,102 +1796,6 @@ def get_region_maskCAsnowIS(datapathT, mplot, xypts_return=0):
 	else:
 		return region_maskCA
 
-def grid2polarstereo(data, lat, lon, reso, hemi,minpts):
-    #Function for averaging swath data onto a polarstereographic grid, a minimum number of points for the grid must be specified
-
-    n_data=size(data)
-
-
-    if reso == 50 and hemi == 'n':
-        res =  50.
-        xl = 152
-        yo = 224
-        edg = 0
-
-    if reso == 25 and hemi == 'n':
-        res =  25.
-        xl = 304
-        yo = 448
-        edg = 0
-
-
-    if reso == 12 and hemi == 'n':
-        res =  12.5
-        xl = 608
-        yo = 896
-        edg = 0
-
-    if reso == 50 and hemi == 's':
-        res =  50.
-        xl = 316/2
-        yo = 332/2
-        edg = 0
-
-
-    if reso == 25 and hemi == 's':
-        res =  25.
-        xl = 316
-        yo = 332
-        edg = 0
-
-
-    if reso == 12 and hemi == 's':
-        res =  12.5
-        xl = 632
-        yo = 664
-        edg = 0
-
-
-    if hemi != 's' and hemi != 'n':
-        print('Illegal value for hemisphere')
-
-
-    if reso != 25 and reso != 12 and reso != 50:
-        print('Resolution must be either 12 or 25')
-
-
-
-
-    idx = np.zeros((2,n_data))  #0=x, 1=y
-
-    mapd = np.zeros((xl,yo))
-    map_c = np.zeros((xl,yo))
-
-    for j in range(n_data):
-
-        x, y = mapll(lat[j],lon[j])
-
-        if hemi == 's':
-
-            x = np.fix(((3850 + x)/res) +0.5)
-            y = np.fix(((4350 - y)/res) +0.5)
-        else:
-            x = np.fix((x+3850.-res/2.)/res+0.5)
-            y = np.fix((yo-1)-(y+5350.-res/2.)/res+0.5)
-        
-
-        x=x-edg
-        x=int(x)
-        y=int(y)
-        if x < xl and x >= 0 and y < yo and y >= 0:
-    
-            map_c[x][y] = map_c[x][y] + 1   
-            mapd[x][y] = mapd[x][y]+data[j]
-
-
-    bad = np.where(map_c < minpts)
-    mapd[bad] = -999.0    #do this to get only points with enough data
-    map_c[bad] = 1.0
-
-
-
-    # mapd(where(map_c LT LONG(minpts*nfactor))) = -999.    ;do this to get only points with enought data, (~1km of data is ~30000 points)
-    # map_c(where(map_c LT LONG(minpts*nfactor)))=1L      
-
-    mapd=mapd/(1.0*map_c)               # Averaging
-
-    return mapd
-
 #@jit
 def bindataN(x, y, z, xG, yG, binsize, retbin=True, retloc=False):
     """
@@ -2231,186 +2056,6 @@ def read_icebridgeALL(dataPath, year, mask_hi=1, mask_nonarctic=1):
 
     return xpts,ypts, lats_total, lons_total, thickness_total, snow_thickness_total
 
-def grid2polarstereo(data, lat, lon, reso, hemi,minpts):
-    # Author: Nathan
-    # Function for averaging swath data onto a polarstereographic grid, a minimum number of points for the grid must be specified
-
-    n_data=size(data)
-
-
-    if reso == 50 and hemi == 'n':
-        res =  50.
-        xl = 152
-        yo = 224
-        edg = 0
-
-    if reso == 25 and hemi == 'n':
-        res =  25.
-        xl = 304
-        yo = 448
-        edg = 0
-
-
-    if reso == 12 and hemi == 'n':
-        res =  12.5
-        xl = 608
-        yo = 896
-        edg = 0
-
-    if reso == 50 and hemi == 's':
-        res =  50.
-        xl = 316/2
-        yo = 332/2
-        edg = 0
-
-
-    if reso == 25 and hemi == 's':
-        res =  25.
-        xl = 316
-        yo = 332
-        edg = 0
-
-
-    if reso == 12 and hemi == 's':
-        res =  12.5
-        xl = 632
-        yo = 664
-        edg = 0
-
-
-    if hemi != 's' and hemi != 'n':
-        print('Illegal value for hemisphere')
-
-
-    if reso != 25 and reso != 12 and reso != 50:
-        print('Resolution must be either 12 or 25')
-
-
-
-
-    idx = np.zeros((2,n_data))  #0=x, 1=y
-
-    mapd = np.zeros((xl,yo))
-    map_c = np.zeros((xl,yo))
-
-    for j in range(n_data):
-
-        x, y = mapll(lat[j],lon[j])
-
-        if hemi == 's':
-
-            x = np.fix(((3850 + x)/res) +0.5)
-            y = np.fix(((4350 - y)/res) +0.5)
-        else:
-            x = np.fix((x+3850.-res/2.)/res+0.5)
-            y = np.fix((yo-1)-(y+5350.-res/2.)/res+0.5)
-        
-
-        x=x-edg
-        x=int(x)
-        y=int(y)
-        if x < xl and x >= 0 and y < yo and y >= 0:
-    
-            map_c[x][y] = map_c[x][y] + 1   
-            mapd[x][y] = mapd[x][y]+data[j]
-
-
-    bad = np.where(map_c < minpts)
-    mapd[bad] = -999.0    #do this to get only points with enough data
-    map_c[bad] = 1.0
-
-
-
-    # mapd(where(map_c LT LONG(minpts*nfactor))) = -999.    ;do this to get only points with enought data, (~1km of data is ~30000 points)
-    # map_c(where(map_c LT LONG(minpts*nfactor)))=1L      
-
-    mapd=mapd/(1.0*map_c)               # Averaging
-
-    return mapd
-
-def grid2polarstereo_idx(data, lat, lon, reso, hemi):
-
-    # Author: Nathan
-    #     
-    # Description: Get the x,y grid point of data on a 12 or 25 km polarstereographic grid with a specified lat/lon   
-    # Input requirements: Lat, lon, resolution, hemisphere
-
-
-    #*** reso = resolution (right now 12 and 25 km)
-    #*** hemi = 'n' or 's'
-
-    n_data=size(data)
-
-
-    # case 1 of
-    if reso == 25 and hemi == 'n':
-        res =  25.
-        xl = 304
-        yo = 448
-        edg = 0
-
-
-    if reso == 12 and hemi == 'n':
-        res =  12.5
-        xl = 608
-        yo = 896
-        edg = 0
-
-    if reso == 25 and hemi == 's':
-        res =  25.
-        xl = 316
-        yo = 332
-        edg = 0
-
-
-    if reso == 12 and hemi == 's':
-        res =  12.5
-        xl = 632
-        yo = 664
-        edg = 0
-
-
-    if hemi != 's' and hemi != 'n':
-        print('Illegal value for hemisphere')
-
-
-    if reso != 25 and reso != 12:
-        print('Resolution must be either 12 or 25')
-
-
-
-
-    idx = np.zeros((2,n_data))  #0=x, 1=y
-
-
-    for j in range(n_data):
-
-        try:
-            x, y = mapll(lat[j],lon[j])
-        except:
-            x, y = mapll(lat,lon)
-        # print(x,y)
-        # pdb.set_trace()
-        # print(mapll(lat[j],lon[j]))
-
-
-        if hemi == 's':
-
-            x = np.fix(((3850 + x)/res) +0.5)
-            y = np.fix(((4350 - y)/res) +0.5)
-        else:
-            x = np.fix((x+3850.-res/2.)/res+0.5)
-            y = np.fix((yo-1)-(y+5350.-res/2.)/res+0.5)
-        
-
-        x=x-edg
-        if x < xl and x >= 0 and y < yo and y >= 0:
-            idx[0][j] = x   
-            idx[1][j] = y
-
-
-    # print(idx)
-    return idx
 
 def mapll(alat, along):
     # AUthor: Nathan
