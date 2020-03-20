@@ -52,7 +52,7 @@ smoothingWindow=200
 resolution=25.
 beamStr='bnum1'
 snowVar='NPdist'
-versionStr='v4'
+versionStr='vf'
 segment=1
 
 
