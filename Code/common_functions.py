@@ -204,8 +204,8 @@ def getThicknessUncertainty(dF, snowDepthVar, snowDensityVar, iceDensityVar, out
 
     # Systematic uncertainity calculation
     snow_depth_unc_sys=dF[['snow_depth_NPdist', 'snow_depth_W99mod5rdist', 'snow_depth_Kdist', 'snow_depth_W99mod5dist', 'snow_depth_W99mod7dist']].std(axis=1)
-    print(dF.head())
-    print('snow depth unc', snow_depth_unc_sys)
+    #print(dF.head())
+    #print('snow depth unc', snow_depth_unc_sys)
     snow_depth_thickness_unc_sys = (snow_depth_unc_sys**2)* \
         ((snow_density-water_density)/(water_density-ice_density))**2
 

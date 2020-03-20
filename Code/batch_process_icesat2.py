@@ -254,7 +254,7 @@ def main(fileT, beamNum):
 	#-------Uncertainty calculation-----------
 	
 	
-	if wuncertaintycalc:
+	if uncertaintycalc:
 		print ('Processing thickness uncertainity...')
 		# Convert freeboard to thickness using distributed NESOSIM data
 		dF = cF.getThicknessUncertainty(dF, snowDepthVar='snow_depth_NPdist', snowDensityVar='snow_density_N',iceDensityVar='ice_density_1', outVar='ice_thickness_unc')
@@ -271,7 +271,10 @@ def main(fileT, beamNum):
 	#cF.plotMap4(dF, mapProj, figPath, dateStr+'_F'+str(fileNum)+'NPdistshot', vars=['freeboard', 'snowDepthNPdist', 'snowDensityN', 'iceThicknessNPdist'])
 	#cF.plotMap4(dF, mapProj, figPath, dateStr+'_F'+str(fileNum)+'Ndist', vars=['freeboard', 'snowDepthNdist', 'snowDensityN', 'iceThicknessNdist'])
 	#plotMap4(dF, mapProj, figPath, dateStr+'_F'+str(fileNum)+'NKdist', vars=['freeboard', 'snowDepthNKdist', 'snowDensityNK', 'iceThicknessNKdist'])
-
+	
+	print(dF.head(5))
+	print(dF.tail(5))
+	
 	#-------Output-----------
 	if (saveNetCDFX==1):
 		outStr=fileT.split("/")[-1][:-3]
@@ -289,7 +292,7 @@ if __name__ == '__main__':
 	ancDataPath='../AncData/'
 	
 	releaseStr='rel002'
-	runStr='run12'
+	runStr='run13'
 
 	ATL10path='/cooler/I2-ASAS/'+releaseStr+'/ATL10-01/'
 
@@ -318,16 +321,16 @@ if __name__ == '__main__':
 	beamNums=[1, 2, 3, 4, 5, 6]
 
 	# If you don't want to use concurrent futures and just run over one cpu then use this code
-	#for ATL10file in ATL10files:
-	#	main(ATL10file, beamNums[0])
+	for ATL10file in ATL10files:
+		main(ATL10file, beamNums[0])
 	
-	with concurrent.futures.ProcessPoolExecutor(max_workers=40) as executor:
+	#with concurrent.futures.ProcessPoolExecutor(max_workers=40) as executor:
 
 		# args=((campaign, beam) for beam in beams)
 		# print(args)
 		# itertools.repeat to add a fixed argument
 		# Not very elegant but whatever..d
-		result1=executor.map(main, ATL10files, repeat(beamNums[0]))
+		#result1=executor.map(main, ATL10files, repeat(beamNums[0]))
 		#result2=executor.map(main, ATL10files, repeat(beamNums[2]))
 		#result3=executor.map(main, ATL10files, repeat(beamNums[4]))
 		#result4=executor.map(main, ATL10files, repeat(beamNums[1]))
