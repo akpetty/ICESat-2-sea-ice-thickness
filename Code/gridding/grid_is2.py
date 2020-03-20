@@ -193,7 +193,7 @@ def outputAlongTrackData(savePathT, lats1d, lons1d, vars1d, monString, outString
 
 	f.close()
 
-def outputBinnedData(savePathT, xpts2d, ypts2d, lats2d, lons2d, vars2d, monString, outStringT):
+def outputBinnedData(savePathT, xpts2d, ypts2d, lats2d, lons2d, vars2d, monString, yearString, outStringT):
 	""" Read in xrarray data and save as netCDF 
 
 	Args:
@@ -209,6 +209,10 @@ def outputBinnedData(savePathT, xpts2d, ypts2d, lats2d, lons2d, vars2d, monStrin
 
 	f = nc4.Dataset(savePathT+'IS2ATL10_'+outStringT+'.nc','w', format='NETCDF4') #'w' stands for write
 	#tempgrp = f.createGroup('DragData')
+	
+	print(vars2d)
+	print(' Variable length:', len(vars2d))
+
 	print ('dimensions:', lons2d.shape[0], lons2d.shape[1])
 	f.createDimension('x', lons2d.shape[0])
 	f.createDimension('y', lons2d.shape[1])
@@ -216,26 +220,15 @@ def outputBinnedData(savePathT, xpts2d, ypts2d, lats2d, lons2d, vars2d, monStrin
 	longitude = f.createVariable('longitude', 'f4', ('x', 'y'))
 	latitude = f.createVariable('latitude', 'f4', ('x', 'y'))  
 
-	xpts = f.createVariable('xgrid', 'f4', ('x', 'y'))
-	ypts = f.createVariable('ygrid', 'f4', ('x', 'y'))  
+	xgrid = f.createVariable('xgrid', 'f4', ('x', 'y'))
+	ygrid = f.createVariable('ygrid', 'f4', ('x', 'y'))  
 	
-
-	
-	
-	longitude[:] = np.around(lons2d, decimals=4) #The "[:]" at the end of the variable instance is necessary
-	latitude[:] = np.around(lats2d, decimals=4)
-	
-	xpts[:] = np.around(xpts2d, decimals=4) #The "[:]" at the end of the variable instance is necessary
-	ypts[:] = np.around(ypts2d, decimals=4)
-
-	print(vars2d)
-	print(' Variable length:', len(vars2d))
 
 
 	# Assume all three main variables
 	iceThickness = f.createVariable('ice_thickness', 'f4', ('x', 'y'))
 	iceThicknessUnc = f.createVariable('ice_thickness_unc', 'f4', ('x', 'y'))
-	numDaysData = f.createVariable('num_binned_days', 'i4', ('x', 'y'))
+	numDaysData = f.createVariable('num_binned_days', 'f4', ('x', 'y'))
 	meanDayOfMonth = f.createVariable('mean_day_of_month', 'f4', ('x', 'y'))
 	snowDepth = f.createVariable('snow_depth', 'f4', ('x', 'y'))
 	snowDensity = f.createVariable('snow_density', 'f4', ('x', 'y'))
@@ -243,13 +236,21 @@ def outputBinnedData(savePathT, xpts2d, ypts2d, lats2d, lons2d, vars2d, monStrin
 	iceType = f.createVariable('ice_type', 'f4', ('x', 'y'))
 	#projection = f.createVariable('projection', 'i4')
 
+	longitude[:] = np.around(lons2d, decimals=4) #The "[:]" at the end of the variable instance is necessary
+	latitude[:] = np.around(lats2d, decimals=4)
+	
+	xgrid[:] = np.around(xpts2d, decimals=4) #The "[:]" at the end of the variable instance is necessary
+	ygrid[:] = np.around(ypts2d, decimals=4)
+
+
+
 	iceThickness[:] = np.around(vars2d[0], decimals=4)
 	freeboard[:] = np.around(vars2d[1], decimals=4)
 	snowDepth[:] = np.around(vars2d[2], decimals=4)
 	snowDensity[:] = np.around(vars2d[3], decimals=4)
 	iceType[:] = np.around(vars2d[4], decimals=0)
 	iceThicknessUnc[:] = np.around(vars2d[5], decimals=4)
-	numDaysData[:] = vars2d[6]
+	numDaysData[:] = np.around(vars2d[6], decimals=0)
 	meanDayOfMonth[:] = np.around(vars2d[7], decimals=0)
 
 	longitude.units = 'degrees East'
@@ -264,44 +265,44 @@ def outputBinnedData(savePathT, xpts2d, ypts2d, lats2d, lons2d, vars2d, monStrin
 	latitude.units = 'degrees North'
 	latitude.long_name='latitude'
 
-	iceThickness.description = monString+' mean ice thickness using piecewise redistributed NESOSIM data.'
+	iceThickness.description = 'Mean ice thickness using piecewise redistributed NESOSIM data.'
 	iceThickness.units = 'meters'
 	iceThickness.long_name ='sea ice thickness'
 	#iceThickness.grid_mapping ='projection'
 
-	iceThicknessUnc.description = monString+' mean ice thickness uncertainty'
+	iceThicknessUnc.description = 'Mean ice thickness uncertainty'
 	iceThicknessUnc.units = 'meters'
 	iceThicknessUnc.long_name ='sea ice thickness uncertainty'
 	#iceThicknessUnc.grid_mapping ='projection'
 
-	snowDepth.description = monString+' mean snow depth using piecewise redistributed NESOSIM data.'
+	snowDepth.description = 'Mean snow depth using piecewise redistributed NESOSIM data.'
 	snowDepth.units = 'meters'
 	snowDepth.long_name = 'snow depth'
 	#snowDepth.grid_mapping ='projection'
 
-	snowDensity.description = monString+' mean snow density from NESOSIM.'
+	snowDensity.description = 'Mean snow density from NESOSIM.'
 	snowDensity.units = 'kilograms per meters cubed'
 	snowDensity.long_name = 'snow density'
 	#snowDensity.grid_mapping ='projection'
 
-	freeboard.description = monString+' mean freeboard from ATL10'
+	freeboard.description = 'Mean freeboard from ATL10'
 	freeboard.units = 'meters'
 	freeboard.long_name = 'sea ice freeboard'
 	#freeboard.grid_mapping ='projection'
 
-	iceType.description = monString+' mean ice type '
+	iceType.description = 'Mean ice type '
 	iceType.units = 'ice type flag (0 = first-year ice, 1 = multi-year ice)'
 	iceType.long_name = 'sea ice type classification'
 	#iceType.grid_mapping ='projection'
 
-	meanDayOfMonth.description = monString+' mean day of the month represented by a given grid-cell based on the date of the along-track data'
-	meanDayOfMonth.units = 'day'
+	meanDayOfMonth.description = 'Mean day of the month represented by a given grid-cell based on the date of the along-track data'
+	meanDayOfMonth.units = 'day of month'
 	meanDayOfMonth.long_name = 'day of month'
 	#meanDayOfMonth.grid_mapping ='projection'
 
 	numDaysData.description = 'Number of valid daily binnned data in the month'
-	numDaysData.units = 'days'
-	numDaysData.long_name = 'number of valid daily bins'
+	numDaysData.units = 'days in month'
+	numDaysData.long_name = 'number of valid daily bins in the monthly bin'
 	#numDaysData.grid_mapping ='projection'
 
 	#projection.proj4text = "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +a=6378273 +b=6356889.449 +units=m +no_defs";
@@ -318,11 +319,10 @@ def outputBinnedData(savePathT, xpts2d, ypts2d, lats2d, lons2d, vars2d, monStrin
 	#projection.semiminor_radius = 6356889.449
 	#projection.units = "meters"
 
-  #Add global attributes
-	f.author = "Alek Petty, Nathan Kurtz, Ron Kwok, Tom Neumann, Thorsten Markus"
-	f.contact = " alek.a.petty@nasa.gov"
-	f.description = "Gridded ICESat-2  "+monString+" sea ice thickness (and ancillary) data, calculated using ATL10 freeboards and NESOSIM snow depth/density estimates. Data are projected onto the NSIDC Polar Stereographic projection (EPSG:3411)."
-	f.reference = "Petty, A. A., N. T. Kurtz, R. Kwok, T. Markus, T. A. Neumann (2020). Winter Arctic sea ice thickness from ICESat-2 freeboards. J. Geophys. Res. Oceans."
+ 	#Add global attributes
+	f.contact = "Alek Petty (alek.a.petty@nasa.gov)"
+	f.description = "Gridded ICESat-2  "+monString+" "+yearString+" sea ice thickness (and ancillary) data, calculated using ATL10 freeboards and NESOSIM snow depth/density estimates. Data are projected onto the NSIDC Polar Stereographic projection (EPSG:3411)."
+	f.reference = "Petty, A. A., N. T. Kurtz, R. Kwok, T. Markus, T. A. Neumann (2020), Winter Arctic sea ice thickness from ICESat-2 freeboards, J. Geophys. Res. Oceans."
 	
 	
 	f.history = "Created " + datetime.today().strftime("%d/%m/%y")
@@ -518,9 +518,9 @@ def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist'
 	monLabel=cF.monLabels(month-1)
 	yearStr=str(year)
 
-	numDays=monthrange(year, month)[1]
-	print(numDays)
-	#numDays=2
+	#numDays=monthrange(year, month)[1]
+	#print(numDays)
+	numDays=2
 	
 	dayVarMonth=np.empty((numDays, xptsG.shape[0], xptsG.shape[1]))
 	dayVarMonth[:]=np.nan
@@ -529,7 +529,7 @@ def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist'
 
 	 
 	
-	labelStr=runStr+'-'+beamStr+'-'+yearStr+monLabel
+	labelStr=runStr+'-'+beamStr+'-'+monLabel+yearStr
 	
 	dataPathIS2v=dataPathIS2+'/'+relStr+'/'+runStr+'/raw/'
 
@@ -549,7 +549,7 @@ def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist'
 	#variables=['ice_thickness_'+snowVar,'ice_thickness_'+snowVar, 'freeboard', 'snow_depth_'+snowVar, 'ice_thickness_uncsys']
 	variables=['ice_thickness_'+snowVar, 'freeboard', 'snow_depth_'+snowVar, 'snow_density_'+snowDensityVar, 'ice_type', 'ice_thickness_uncsys']
 	#variables=['ice_thickness_'+snowVar, 'snow_depth_'+snowVar, 'snow_density_'+snowDensityVar, 'freeboard', 'ice_type']
-	versionStr='v22'
+	versionStr='v4'
 
 	varsBin=[]
 	for x in range(size(variables)):
@@ -557,8 +557,10 @@ def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist'
 		print(variable)
 		varBinMonthMean, varBinMonth, segBinMonthMean, xptsRawMonth, yptsRawMonth, lonsRawMonth, latsRawMonth, IS2dataRawMonth, countDays =getMonthBinned(dataPathIS2v, figPathMv, variable, x, labelStr, snowVar, yearStr, monStr, numDays, fNum, beamStr, resolution, segment, smoothingWindow, mPS,  xptsG, yptsG,lonsG, latsG)
 		
+		varBinMonthMean.dump(savePath+labelStr+variable+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr+'dump')
+			
 		varsBin.append(varBinMonthMean)
-		outputAlongTrackData(savePath, latsRawMonth, lonsRawMonth, IS2dataRawMonth, monStr, labelStr+variable+beamStr+'W'+str(smoothingWindow)+versionStr, smoothingWindow)
+		#outputAlongTrackData(savePath, latsRawMonth, lonsRawMonth, IS2dataRawMonth, monStr, labelStr+variable+beamStr+'W'+str(smoothingWindow)+versionStr, smoothingWindow)
 			
 		if (x==size(variables)-1):
 			
@@ -576,6 +578,9 @@ def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist'
 			plotData(figPathMv, mPS, xptsRawMonth, yptsRawMonth, IS2dataRawMonth, xptsG, yptsG, countDays, labelStr+snowVar+'num_days_data'+str(smoothingWindow)+str(resolution)+'km_seg'+str(segment)+'_month_')
 			plotData(figPathMv, mPS, xptsRawMonth, yptsRawMonth, IS2dataRawMonth, xptsG, yptsG, varDay, labelStr+snowVar+'mean_day'+str(smoothingWindow)+str(resolution)+'km_seg'+str(segment)+'_month_')
 
+			varDay.dump(savePath+labelStr+'dayofmonth'+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr+'dump')
+			countDays.dump(savePath+labelStr+'count'+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr+'dump')
+			
 			#varDay[np.isnan(varBinMonthMean)]=np.nan
 			#varCount[np.isnan(varBinMonthMean)]=np.nan
 			
@@ -583,10 +588,10 @@ def main(date, resolution=25., relStr='rel002', runStr='run12', snowVar='NPdist'
 			print('varDay:', varDay)
 			varsBin.append(countDays)
 			varsBin.append(varDay)
-
+	
 	#varsBin.append(varDay)
 
-	outputBinnedData(savePath, xptsG, yptsG, latsG, lonsG, varsBin, monLabel, labelStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr)
+	outputBinnedData(savePath, xptsG, yptsG, latsG, lonsG, varsBin, monLabel, yearStr, labelStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr)
 
 
 #-- run main program

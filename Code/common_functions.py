@@ -36,7 +36,7 @@ from scipy.interpolate import griddata
 from netCDF4 import Dataset
 import dask.array as da
 from scipy import stats
-from numba import jit, prange
+#from numba import jit, prange
 
 
 def getIS2gridded(savePathT, outStringT, mapProj, variable='ice_thickness', poleHole=88):
@@ -52,6 +52,7 @@ def getIS2gridded(savePathT, outStringT, mapProj, variable='ice_thickness', pole
     print(savePathT+'IS2ATL10_'+outStringT+'.nc')
     dIS2 = xr.open_dataset(savePathT+'IS2ATL10_'+outStringT+'.nc')
 
+    # dIS2[variable].values should also work
     varIS2 = array(dIS2[variable])
     latsIS2 = array(dIS2.latitude)
     lonsIS2 = array(dIS2.longitude)
@@ -106,15 +107,21 @@ def getCS2gsfc(yearStr, mStr):
     
     
 def getSnowandConverttoThickness(dF, snowDepthVar='snowDepth', snowDensityVar='snowDensity', outVar='iceThickness', rhoi=3):
-    """ Grid using nearest neighbour the NESOSIM snow depths to the high-res ICESat-1 freeboard locations"""
+    """ Convert freeboard to thickness
     
-    # Convert freeboard to thickness
+    Args:
+        dF (dataframe): dataframe containing the data
+        snowDepthVar (str): snow depth variable of choosing
+        snowDensityVar (str): snow density variable of choosing
+        outVar (str): output string
+        rhoi (int): ice density option
+
+    """
+    
     # Need to copy arrays or it will overwrite the pandas column!
     freeboardT=np.copy(dF['freeboard'].values)
     snowDepthT=np.copy(dF[snowDepthVar].values)
     snowDensityT=np.copy(dF[snowDensityVar].values)
-    
-
     iceDensityT=np.ones_like(dF['freeboard'].values)*916.
     
     if 'ice_density_1' not in dF:
@@ -137,7 +144,8 @@ def getSnowandConverttoThickness(dF, snowDepthVar='snowDepth', snowDensityVar='s
             dF['ice_density_3'] = pd.Series(iceDensityT, index=dF.index)
 
     ice_thickness = freeboard_to_thickness(freeboardT, snowDepthT, snowDensityT, iceDensityT)
-    #print(ice_thickness)
+
+    # add to dataframe
     dF[outVar] = pd.Series(array(ice_thickness), index=dF.index)
    
     return dF
@@ -157,6 +165,8 @@ def getThicknessUncertainty(dF, snowDepthVar, snowDensityVar, iceDensityVar, out
     # Define density values
     water_density=1024.
     #ice_density=915.
+
+    # Random uncertainity calculation
 
     # Add 0.02 to represent precision estimated over flat surfaces
     freeboard_unc=np.copy(dF['freeboard_sigma'].values)+0.02
@@ -191,6 +201,8 @@ def getThicknessUncertainty(dF, snowDepthVar, snowDensityVar, iceDensityVar, out
 
     rand_uncertainty=array(sqrt(rand_uncertainty_squared))
 
+
+    # Systematic uncertainity calculation
     snow_depth_unc_sys=dF[['snow_depth_NPdist', 'snow_depth_W99mod5rdist', 'snow_depth_Kdist', 'snow_depth_W99mod5dist', 'snow_depth_W99mod7dist']].std(axis=1)
     print(dF.head())
     print('snow depth unc', snow_depth_unc_sys)
@@ -212,6 +224,8 @@ def getThicknessUncertainty(dF, snowDepthVar, snowDensityVar, iceDensityVar, out
     
     sys_uncertainty=array(sqrt(sys_uncertainty_squared))
 
+    # Add to dataframe
+
     dF['freeboard_unc'] = pd.Series(freeboard_unc, index=dF.index)
     dF[outVar+'random'] = pd.Series(rand_uncertainty, index=dF.index)
     dF[outVar+'sys'] = pd.Series(sys_uncertainty, index=dF.index)
@@ -222,8 +236,7 @@ def getThicknessUncertainty(dF, snowDepthVar, snowDensityVar, iceDensityVar, out
 
 def getATL10FreeboardShotData(fileT, mapProj, beamNum=1, hem='nh'):
     """
-    Load ATL10 freeboard shot data from a given beam
-    # Store in a Pandas dataframe
+    Load ATL10 freeboard shot data from a given beam into a Pandas dataframe
 
     Args:
         freeboardFileT (file): file path of ICESat freeboard data
@@ -244,6 +257,7 @@ def getATL10FreeboardShotData(fileT, mapProj, beamNum=1, hem='nh'):
     except:
         return None
 
+    # Find out the spacecraft orientation to know what beam string to choose
     orientation_flag=f1['orbit_info']['sc_orient'][0]
     print('orientation flag:', orientation_flag)
     if (orientation_flag==0):
@@ -260,8 +274,6 @@ def getATL10FreeboardShotData(fileT, mapProj, beamNum=1, hem='nh'):
     beamStr=beamStrs[beamNum-1]
     print(beamStr)
 
-    #freeboard_confidence=f1[beamStr]['freeboard_beam_segment']['beam_freeboard']['beam_fb_confidence'][:]
-    #freeboard_quality=f1[beamStr]['freeboard_beam_segment']['beam_freeboard']['beam_fb_quality_flag'][:]
     try:
         freeboard=f1[beamStr]['freeboard_beam_segment']['beam_freeboard']['beam_fb_height'][:]
     except:
@@ -290,11 +302,10 @@ def getATL10FreeboardShotData(fileT, mapProj, beamNum=1, hem='nh'):
     #dF = dF[(dF['freeboard']>0)]
     dF = dF[(dF['freeboard']<10)]
 
-    # Decide here if we want to also filter based on the confidence and/or quality flag
+    # Could add in a filter based on the confidence and/or quality flag
 
     # Reset row indexing
     dF=dF.reset_index(drop=True)
-    #print(dF.head(3))
     
     # Change this to read in from file not the string
     fileStr=fileT.split("/ATL10-")[-1]
@@ -306,7 +317,7 @@ def getATL10FreeboardShotData(fileT, mapProj, beamNum=1, hem='nh'):
 
     print('Year:', fileStr[0:4], 'Month:', fileStr[4:6], 'Day:', fileStr[6:8])
     
-
+    # Add grid projection information
     xpts, ypts=mapProj(dF['lon'].values, dF['lat'].values)
 
     dF['xpts'] = pd.Series(xpts, index=dF.index)
@@ -318,60 +329,30 @@ def getATL10FreeboardShotData(fileT, mapProj, beamNum=1, hem='nh'):
     return dF, fileStr
 
 
-def getProcessedATL10Shotdata(dataOutPathM, runStrT, campaignStrT, cols, yearStr='2018', monStr='*', dayStr='*', fNum=-1, beamStr='gt1r'):
-    """
-    Load ICESat-2 thickness data produced from the raw ATL10 shot data
-        
-    """
-    files=glob(dataOutPathM+runStrT+'/'+campaignStrT+'/IS2ATL10*'+yearStr+monStr+dayStr+'*'+beamStr)
-    print(dataOutPathM+runStrT+'/'+campaignStrT+'/IS2ATL10*'+yearStr+monStr+dayStr+'*'+beamStr)
-    print('Number of files:', size(files))
-
-    if (fNum>=0):
-        # if we want to just pick one of the files available that day...
-        IS2dataAll = pd.read_pickle(files[fNum])
-        if (cols!='all'):
-            IS2dataAll=IS2dataAll[cols]
-        return IS2dataAll
-
-
-    if size(files)>1:
-        IS2dataAll = pd.read_pickle(files[0])
-        IS2dataAll=IS2dataAll[cols]
-        for x in range(1, size(files)):
-            IS2dataT = pd.read_pickle(files[x])
-            if (cols!='all'):
-                IS2dataT=IS2dataT[cols]
-            IS2dataAll = pd.concat([IS2dataT, IS2dataAll])
-        
-            print ('File:', str(x+1)+'/'+str(size(files)), IS2dataAll.shape)
-        IS2dataAll=IS2dataAll.reset_index(drop=True)
-        
-        return IS2dataAll
-    elif size(files)==1:
-        IS2dataAll = pd.read_pickle(files[0])
-        if (cols!='all'):
-            IS2dataAll=IS2dataAll[cols]
-        return IS2dataAll
-    else:
-        print('No files')
-        return
-
-
 
 def getProcessedATL10ShotdataNCDF(dataPathT, yearStr='*', monStr='*', dayStr='*', fNum=-1, concat=0, ssh_mask=0, minseg=0, maxseg=0, beamStr='gt1r', vars=[], smoothingWindow=0):
     """
     Load ICESat-2 thickness data produced from the raw ATL10 shot data
+    If opening multiple files this utilizes Dask to store data in a Dask xarray dataset which chunks the data to be stored in parralel.
+
+    Various different options are included based on how much/type of data being loaded into memory.
+
+    Args:
+        dataPathT (file): file path of thickness data
+        
+    
+    Returns:
+        IS2dataAll (dataset): xarray dataset
+
         
     """
     
     print(dataPathT+'IS2ATL10-01_'+yearStr+monStr+dayStr+'*'+'_*'+beamStr+'*.nc')
     files=glob(dataPathT+'IS2ATL10-01_'+yearStr+monStr+dayStr+'*'+'_*'+beamStr+'*.nc')
     print('Number of files:', size(files))
-    #import pdb; pdb.set_trace()
+
     print(ssh_mask, minseg, maxseg)
-    #testFile = Dataset(files[0])
-    #print(testFile.variables.keys())
+
     if (fNum>-0.5):
         if (size(vars)>0):
             IS2dataAll= xr.open_dataset(files[fNum], engine='h5netcdf')[vars]
@@ -387,7 +368,7 @@ def getProcessedATL10ShotdataNCDF(dataPathT, yearStr='*', monStr='*', dayStr='*'
             darray = xr.concat(IS2files, dim='index')
             return darray
 
-        # apparently autoclose assumed so no longer need to include the True flag
+        # Apparently autoclose assumed so no longer need to include the True flag
         if (size(vars)==1):
             IS2files=[xr.open_dataset(file,chunks={}, engine='h5netcdf')[vars] for file in files] 
             darray = xr.concat(IS2files, dim='index')
@@ -395,13 +376,11 @@ def getProcessedATL10ShotdataNCDF(dataPathT, yearStr='*', monStr='*', dayStr='*'
             return darray
         if (size(vars)>1):
             print('variable')
-            #files=glob(dataPathT+'/IS2ATL10*'+yearStr+monStr+dayStr+'*'+'_'+beamStr+'*.nc')
-            #IS2files=[xr.open_dataset(file, engine='h5netcdf')[vars] for file in files] 
-            #IS2dataAll=xr.concat(IS2files, 'index')
+
             IS2dataAll= xr.open_mfdataset(dataPathT+'/IS2ATL10-01_'+yearStr+monStr+dayStr+'*'+'_'+beamStr+'*.nc', concat_dim='index', parallel=True)[vars]
         else:
             IS2dataAll= xr.open_mfdataset(dataPathT+'/IS2ATL10-01_'+yearStr+monStr+dayStr+'*'+'_'+beamStr+'*.nc', parallel=True)
-        #IS2dataAll = pd.read_pickle(files[0])
+
     print(IS2dataAll.info)
     
     #IS2dataAll=IS2dataAll[vars]
@@ -462,7 +441,18 @@ def getProcessedATL10ShotdataNCDF(dataPathT, yearStr='*', monStr='*', dayStr='*'
 
 def getProcessedIS1(dataPathT, campaignStr, vars=[], fNum=-1, smoothingWindow=0):
     """
-    Load ICESat-2 thickness data produced from the raw ATL10 shot data
+    Load ICESat thickness data
+    If opening multiple files this utilizes Dask to store data in a Dask xarray dataset which chunks the data to be stored in parralel.
+
+    Various different options are included based on how much/type of data being loaded into memory.
+
+    Args:
+        dataPathT (file): file path of thickness data
+        campaignStr (str): ICESat campaign
+    
+    Returns:
+        IS1dataAll (dataset): xarray dataset
+
         
     """
     
@@ -517,8 +507,8 @@ def getProcessedIS1(dataPathT, campaignStr, vars=[], fNum=-1, smoothingWindow=0)
 
 def reset_matplotlib():
     """
-        Reset matplotlib to a common default.
-    
+    Reset matplotlib to a common default.
+
     """
     
     # Force agg backend.
@@ -536,9 +526,14 @@ def reset_matplotlib():
     rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
 
 def getNesosimDates(dF, snowPathT):
-    """ Get dates from NESOSIM files"""
+    """ 
+    Get the start date of the dataframe and find the NESOSIM file that matches
 
-    # This will come from the distinct rows of the IS-1 data eventually, but for now the data only span a day or two, so not much change in snow depth..
+    NB: rarely does an ICESAt-2 granule span more than a day
+
+    """
+
+
     dayS=dF['day'].iloc[0]
     monthS=dF['month'].iloc[0]
     monthF=dF['month'].iloc[-1]
@@ -558,7 +553,7 @@ def getNesosimDates(dF, snowPathT):
     return fileNESOSIM, dateStr
 
 def plotMap4(dF, mapProj, figPathT, outStr, vars=['freeboard', 'snowDepthN', 'snowDensityN', 'iceThicknessN']):
-    """ plot data on 4 maps as a check"""
+    """ plot freebaord, snow depth, snow density and ice thickness """
 
     rcParams['axes.labelsize'] = 8
     rcParams['xtick.labelsize'] = 8
@@ -596,85 +591,24 @@ def plotMap4(dF, mapProj, figPathT, outStr, vars=['freeboard', 'snowDepthN', 'sn
     plt.close('all')
 
 def correlateVars(var1, var2):
-    """correlate two variables"""
+    """
+    correlate two variables using stats linregress
+    Args:
+        var1 (var): variable 1
+        var2 (var): variable 2
+    
+    Returns:
+        trend, significance, correlation coefficient, y-intercept
+
+    """
 
     trend, intercept, r_a, prob, stderr = stats.linregress(var1, var2)
     sig = 100.*(1.-prob)
     return trend, sig, r_a, intercept 
 
 
-def getOSISAFconcDay(osisafPath, mProj, yearT, month, day, mask=1, maxConc=0, lowerConc=1, fillPhole=1, regionMask=1):
-    """
-    Get daily ice conc from OSISAF
-
-    month index starts at 1
-    day index starts at 1
-
-    """
-    pmask=get_pmask(yearT, month)
-
-    mStr='%02d' %(month)
-    dStr='%02d' %(day) 
-    fileT=osisafPath+str(yearT)+'/'+mStr+'/ice_conc_nh_polstere-100_multi_'+str(yearT)+mStr+dStr+'1200.nc'
-            
-
-    f = Dataset(fileT, 'r')
-    print(fileT)
-
-    # read lat/lon (start points) and lat1/lon1 (end points)
-    lon = (f.variables['lon'][:])
-    lat = (f.variables['lat'][:])
-
-    # transform to map project coordinates (basemap's axes, assume they have unit of m)
-    x0, y0=mProj(lon, lat)
-
-    # Convert percent to conc!
-    conc = (f.variables['ice_conc'][0])/100.
-    
-    f.close()
-
-    if (mask==1):
-        conc = ma.masked_where(conc>1., conc)
-    
-    if (maxConc==1):
-        conc = ma.where(conc>1.,0, conc)
-
-    if (lowerConc==1):
-        conc = ma.where(conc<0.15,0, conc)
-
-    if (fillPhole==1):
-        concHole=ma.mean(conc[(lat>pmask-2.) & (lat<pmask-1.5)])
-        #print concHole
-        conc = where((lat >=pmask-2.), concHole, conc)
-
-    if (regionMask==1):
-        region_mask, xptsI, yptsI = get_region_mask_sect('../../AncData/', mProj, xypts_return=1)
-
-        conc[where(region_mask>18)]=0
-
-    #print iceConcDay
-    #iceConcDay=ma.filled(np.nan)
-    
-    return conc, x0, y0
-
-def turningpoints(yvals, xvals):
-    dx = np.diff(yvals)
-    dx2=np.diff(dx)
-    tpts=where((dx[1:] * dx[:-1] < 0)&(dx2<0))
-    tpts=[t+1 for t in tpts][0]
-    print(tpts)
-    print(yvals[tpts])
-    # limit these to values above a threshold to avoid weird bins at the tail
-    #idx=yvals[tpts]>0.1*np.amax(yvals)
-    modes=[]
-    for tpt in tpts:
-        print(yvals[tpt])
-        if (yvals[tpt]>0.1*np.amax(yvals)):
-            modes.append(xvals[tpt])
-
-    return dx, dx2, modes
-
 def get_region_mask_sect_labels(region):
+    """ Get region mask labels """
 
     labels=['non-region oceans', 'Sea of Okhotsk and Japan', 'Bering Sea', 'Hudson Bay','Gulf of St. Lawrence', \
     'Baffin Bay/D. Strait/Lab. Sea', 'Greenland Sea', 'Barents Sea', 'Kara Sea','Laptev Sea', 'E. Siberian Sea',\
@@ -683,15 +617,31 @@ def get_region_mask_sect_labels(region):
     return labels[region-1]
 
 def get_cdr_conc(concdataPath, mplot, yearStr, monStr):
+    """
+    Get monthly CDR ice concentration and produce x/y grid projection coordinates
+    Args:
+        concdataPath (str): path of concentration data
+        mplot (basemap): map projection
+        yearStr (str): year string
+        monStr (str): month string
+    
+    Returns:
+        xpts, ypts, ice concentration
+
+    """
+
     fileT=glob(concdataPath+'*'+yearStr+monStr+'*.nc')[0]
     fconc = Dataset(fileT, 'r')
+    
     iceConc = fconc.variables['seaice_conc_monthly_cdr'][0]
     clat = fconc.variables['latitude'][:]
     clon = fconc.variables['longitude'][:]
     xptsc, yptsc=mplot(clon, clat)
+    
     return xptsc, yptsc, iceConc
 
 def get_region_mask_sect(datapath, mplot, xypts_return=0):
+    
     datatype='uint8'
     file_mask = datapath+'/sect_fixed_n.msk'
     # 1   non-region oceans
@@ -745,6 +695,19 @@ def get_pmask(year, month):
     return pmask
 
 def get_psnlatslons(data_path, res=25):
+    """ 
+    Get NSIDC Polar Stereographic projection data 
+
+    Args:
+        data_path (str): data path of grids
+        res (int): grid resolution (25, 12.5, 6.25 km available currently)
+
+    returns:
+        lats, lons of projection on a 2D grid
+
+    """
+
+
     if (res==25):
         # 25 km grid
         mask_latf = open(data_path+'/psn25lats_v3.dat', 'rb')
@@ -758,7 +721,7 @@ def get_psnlatslons(data_path, res=25):
         lats_mask = reshape(fromfile(file=mask_latf, dtype='<i4')/100000., [896, 608])
         lons_mask = reshape(fromfile(file=mask_lonf, dtype='<i4')/100000., [896, 608])
     elif (res==6):
-        # 12.5 km grid
+        # 6.25 km grid
         mask_latf = open(data_path+'/psn06lats_v3.dat', 'rb')
         mask_lonf = open(data_path+'/psn06lons_v3.dat', 'rb')
         lats_mask = reshape(fromfile(file=mask_latf, dtype='<i4')/100000., [1792, 1216])
@@ -771,62 +734,29 @@ def distributeSnow(dF, inputSnowDepth='snowDepthNP', outSnowVar='snowDepthNPdist
     Do the distribution from the snow data already loaded in
 
     Args:
-        dF (data frame): Pandas dataframe
-        mapProj (basemap instance): Basemap map projection
-        fileSnow (string): NESOSIM file path
-        dateStr (string): date string
-        outSnowVar (string): Name of snow depth column
+        dF (data frame): Pandas dataframe storing all the data
+        inputSnowDepth (str): snow depth to redistribute
+        outSnowVar (str); output name for redistributed snow
         consIterations (var, default of 11): number of terative loops to try and conserve snow after the freeboard re-distribution
         gridSize (var, default of 100000): along track distance in meters
+        version (int): type of redistribution scheme chosen (V3 and V4 are just different versions of the piecewise redistribution)
+
     Returns:
-        dF (data frame): Pandas dataframe updated to include colocated NESOSIM (and dsitributed) snow data
+        dF (data frame): Pandas dataframe updated to include colocated redistributed snow depth
 
     """
+    
     # num of points required to do a snow redistribution calculation
     numPtsReq=100
 
-    #dN = xr.open_dataset(fileSnow)
-
-    # Get NESOSIM snow depth and density data for that date
-    # Could move this into the loop if there is a significant date spread in the freeboard data (appears not to be the case though!).
-    # Improves processing speed. 
-    
-    #dNday = dN.sel(day=int(dateStr))
-    # Get NESOSIM coordinates (constant with time)
-    #lonsN = array(dNday.longitude)
-    #latsN = array(dNday.latitude)
-    #xptsN, yptsN = mapProj(lonsN, latsN)
-
-    #dateStr= getDate(dF['year'].iloc[0], dF['month'].iloc[0], dF['day'].iloc[0])
-    #print (dateStr)
-    #print ('Freeboard (m):', dF['freeboard'].iloc[x])
-    #dNday = dN.sel(day=int(dateStr))
-    #snowDepthNDay = array(dNday.snowDepth)
-    #snowDensityNDay = array(dNday.density)
-    #iceConcNDay = array(dNday.iceConc)
-
-    #mask=where((snowDepthNDay>0.01)&(snowDepthNDay<1)&(iceConcNDay>0.01)&np.isfinite(snowDensityNDay))
-
-    #snowDepthNDay = snowDepthNDay[mask]
-    #snowDensityNDay = snowDensityNDay[mask]
-    #xptsNDay = xptsN[mask]
-    #yptsNDay = yptsN[mask]
     xptsT=dF['xpts'].values
     yptsT=dF['ypts'].values
     freeboardsT=dF['freeboard'].values
     
     snowDepthUndistributed=dF[inputSnowDepth].values
 
-    #snowDepthGISs=ma.masked_all(size(freeboardsT))
-    #snowDensityGISs=ma.masked_all(size(freeboardsT))
-    #for x in range(size(freeboardsT)):
-    #   snowDensityGIS = griddata((xptsNDay, yptsNDay), snowDensityNDay, (xptsT[x], yptsT[x]), method='nearest') 
-    #    snowDensityGISs[x]=snowDensityGIS
 
-    # consered/distributed snow depth
     snowDepthDistsC=ma.masked_all(size(freeboardsT))
-    # Unconsered/distributed snow depth
-    #snowDepthDistsUC=ma.masked_all(size(freeboardsT))
 
     alongTrackDists = sqrt((xptsT-xptsT[0])**2+(yptsT-yptsT[0])**2)
     numGrids=int(ceil(alongTrackDists[-1]/gridSize))
@@ -838,20 +768,12 @@ def distributeSnow(dF, inputSnowDepth='snowDepthNP', outSnowVar='snowDepthNPdist
         #print('grididx', gridIdx, ', gridPts:', gridPts, ', size:', size(gridPts), ', dists:', alongTrackDists[gridPts], int((size(gridPts) - 1)/2))
         
         if (size(gridPts)>100):
-            #midIdx = int((size(gridPts) - 1)/2)
-            #midGridIdx=gridPts[midIdx]
-            #print('grid points:', gridPts, midIdx)
+
             
             if (version=='V3'):
                 snowDepthDistsC[gridPts] = snowDistributionV3(ma.mean(snowDepthUndistributed[gridPts]), freeboardsT[gridPts], ma.mean(freeboardsT[gridPts]), numIter=consIterations)
             elif (version=='V4'):
                 snowDepthDistsC[gridPts] = snowDistributionV4(ma.mean(snowDepthUndistributed[gridPts]), freeboardsT[gridPts], ma.mean(freeboardsT[gridPts]), numIter=consIterations)
-            #print (snowDepthUndistributed[gridPts])
-            #print (snowDepthDistsC[gridPts])
-            
-            #snowDepthDistsUC[gridPts] = snowDistributionV3(ma.mean(snowDepthUndistributed[gridPts]), freeboardsT[gridPts], ma.mean(freeboardsT[gridPts]), numIter=1)
-            
-            #print (snowDepthDistsUC[gridPts])
 
         else:
             # Just find the nearest snow depth
@@ -866,13 +788,15 @@ def distributeSnow(dF, inputSnowDepth='snowDepthNP', outSnowVar='snowDepthNPdist
 
 def distributeSnowKwok(dF, inputSnowDepth='snowDepthN', outSnowVar='snowDepthKdist'):
     """
-    Do the distribution from the snow data already loaded in
+    Snow distribution using the Kwok sigmoid function.
 
     Args:
-        dF (data frame): Pandas dataframe
+        dF (data frame): Pandas dataframe storing all the data
+        inputSnowDepth (str): snow depth to redistribute
+        outSnowVar (str); output name for redistributed snow
 
     Returns:
-        dF (data frame): Pandas dataframe updated to include colocated NESOSIM (and dsitributed) snow data
+        dF (data frame): Pandas dataframe updated to include colocated redistributed snow depth
         
     """
 
@@ -888,12 +812,12 @@ def distributeSnowKwok(dF, inputSnowDepth='snowDepthN', outSnowVar='snowDepthKdi
         frac=sigmoidFunc(freeboardsT[x]/snowDepthUndistributed[x])
         snowDepthDistsC[x]=frac*snowDepthUndistributed[x]
 
+        # Dont let snow be greater than the freeboard (this is where it ges harder to conserve snow)
         if (snowDepthDistsC[x] > freeboardsT[x]): 
-            # Dont let snow be greater than the freeboard (this is where it ges harder to conserve snow)
             snowDepthDistsC[x] = freeboardsT[x]
 
     dF[outSnowVar] = pd.Series(snowDepthDistsC, index=dF.index)
-    dF.head(3)
+    #dF.head(3)
 
     return dF
 
@@ -912,7 +836,7 @@ def gridNESOSIMtoFreeboard(dF, mapProj, fileSnow, dateStr, outSnowVar='snowDepth
         dateStr (string): date string
         outSnowVar (string): Name of snow depth column
         outDensityVar (string): Name of snow density column
-
+        
     Returns:
         dF (data frame): dataframe updated to include colocated NESOSIM (and dsitributed) snow data
 
@@ -921,8 +845,6 @@ def gridNESOSIMtoFreeboard(dF, mapProj, fileSnow, dateStr, outSnowVar='snowDepth
     dN = xr.open_dataset(fileSnow)
 
     # Get NESOSIM snow depth and density data for that date
-    # Should move this into the loop if there is a significant date cahgne in the freeboard data.
-    # Not done this to improve processing speed. 
     dNday = dN.sel(day=int(dateStr))
     
     lonsN = array(dNday.longitude)
@@ -957,16 +879,15 @@ def gridNESOSIMtoFreeboard(dF, mapProj, fileSnow, dateStr, outSnowVar='snowDepth
     snowDensityGISs=ma.masked_all(size(freeboardsT))
     #snowDepthDists=ma.masked_all(size(freeboardsT))
 
-    #for x in prange(size(freeboardsT)):
     for x in range(size(freeboardsT)):
         
-        # Could embed the NESOSIM dates here
+        # NB: Could embed the NESOSIM dates here
         
         # Use nearest neighbor to find snow depth at IS2 point
         #snowDepthGISs[x] = griddata((xptsDay, yptsDay), snowDepthDay, (dF['xpts'].iloc[x], dF['ypts'].iloc[x]), method='nearest') 
         #snowDensityGISs[x] = griddata((xptsDay, yptsDay), densityDay, (dF['xpts'].iloc[x], dF['ypts'].iloc[x]), method='nearest')
 
-        # Think this is the much faster way to find nearest neighbor!
+        # This seems to be the much faster way to find nearest neighbor
         dist = sqrt((xptsNDay-xptsT[x])**2+(yptsNDay-yptsT[x])**2)
         index_min = np.argmin(dist)
         snowDepthGISs[x]=snowDepthNDay[index_min]
@@ -976,19 +897,6 @@ def gridNESOSIMtoFreeboard(dF, mapProj, fileSnow, dateStr, outSnowVar='snowDepth
     dF[outSnowVar] = pd.Series(snowDepthGISs, index=dF.index)
     dF[outDensityVar] = pd.Series(snowDensityGISs, index=dF.index)
 
-    # SNOW REDISTRIBUTION
-    #for x in range(size(freeboardsT)):
-        
-        # Find the mean freebaord in this vicinitiy
-        # ICESat-1 has a shot every 172 m, so around 600 shots = 100 km
-    #    meanFreeboard = ma.mean(freeboardsT[x-300:x+300])
-    #    snowDepthDists[x] = snowDistribution(snowDepthGISs[x], freeboardsT[x], meanFreeboard)
-
-    #dF[outSnowVar+'dist'] = pd.Series(snowDepthDists, index=dF.index)
-
-    #print ('Snow depth (m): ', snowDepthGIS)
-    #print ('Snow density (kg/m3): ', snowDensityGIS)
-    #print ('Snow depth (m): ', snowDepthDists)
     
     if (returnMap==1):
         return dF, xptsN, yptsN, dNday, 
@@ -1090,8 +998,6 @@ def snowDistributionV4(meanSnowDepthT, freeboardsT, meanFreeboardT, numIter=11):
     hs_thick_adj = 0.0
     hs_thick_prev_adj = 0.0
 
-    #print('Mean snow:', meanSnowDepthT, 'Adj mean snow:', adjmeanSnowDepthT, 'mean freeboard:', meanFreeboardT, 'fcutoff', fb_cutoff)
-
 
     for iter in range(numIter): # Set this to zero to not do an iterative loop to conserve snow
         # This doesn't seem to be doing much
@@ -1155,10 +1061,9 @@ def assignRegionMask(dF, mapProj, ancDataPath='../../AncData/'):
         
         
     Returns:
-        dF (data frame): data frame including ice type column (1 = multiyear ice, 0 = everything else)
+        dF (data frame): data frame including region flag
 
     """
-
 
     region_mask, xptsI, yptsI = get_region_mask_sect(ancDataPath, mapProj, xypts_return=1)
 
@@ -1169,59 +1074,19 @@ def assignRegionMask(dF, mapProj, ancDataPath='../../AncData/'):
     #iceTypeGs=[]
     regionFlags=ma.masked_all((size(dF['freeboard'].values)))
     for x in range(size(dF['freeboard'].values)):
+        
         # Find nearest region
         dist=sqrt((xptsI-dF['xpts'].iloc[x])**2+(yptsI-dF['ypts'].iloc[x])**2)
         index_min = np.argmin(dist)
         regionFlags[x]=int(region_mask[index_min])
-        # This is waht I normally do but it's much slower!
-        # I checked and they gave the same answers
-        # iceTypeG2 = griddata((xpts_type, ypts_type), ice_typeT2, (dF['xpts'].iloc[x], dF['ypts'].iloc[x]), method='nearest') 
-        # print(iceTypeG)
-        # iceTypeGs.append(iceTypeG)
+
 
     dF['region_flag'] = pd.Series(regionFlags, index=dF.index)
 
     return dF
 
 
-def getIceTypeRaw(iceTypePathT, mapProj, dayStr, monStr, yearStr, res=1):
-    """
-    Get ice type based on the OSI-SAF ice type product, 
-    extended back tot he SSMI period as part of the Copernicus Climate Change (C3S) service.
-    Thanks to Thomas Lavergne and Singe Aaboe 
-    
-    Data from 2006 onwards is from OSI-SAF (Lavergene et al.)
-    Data prior to 2006 is produced through funding provided by the Copernicus CDR (Aaboe et al.,)
-    Product User Guide and Specification (PUGS): Sea Ice Edge and Type version 1, Algorithm Theoretical Basis Document (ATBD): Sea Ice Edge and Type version 2";
-    
-    Assumes minimal change in ice type across a day so just use the first row for date information and apply to all rows
 
-    Returns:
-        x, y, icetype
-
-    """
-
-    dateStr=yearStr+monStr+dayStr
-
-    # Recently changed this. The hosted data has monthly folders so could add a catch to try that if no file found
-    iceTypePathFull = iceTypePathT+'/'+yearStr+'/'+monStr+'/'
-    print(iceTypePathFull)
-   
-
-    files = glob(iceTypePathFull+'*_nh_*'+dateStr+'1200.nc')
-    f = Dataset(files[0], 'r')
-    print ('Ice type file path:', files[0])
-
-    lats = f.variables['lat'][::res, ::res]
-    lons = f.variables['lon'][::res, ::res]
-    ice_typeT = f.variables['ice_type'][0,::res, ::res]
-    # set multiyear ice and amiguous to 1, everything else to 0
-    ice_typeT = np.where(ice_typeT>2.5, 1, 0)
-    ice_typeT = ma.masked_where(lats>88, ice_typeT)
-
-    xpts_type, ypts_type = mapProj(lons, lats)
-
-    return xpts_type, ypts_type, ice_typeT
 
 def getIceType(dF, iceTypePathT, mapProj, res=1, returnRaw=1):
     """
@@ -1234,8 +1099,6 @@ def getIceType(dF, iceTypePathT, mapProj, res=1, returnRaw=1):
     Product User Guide and Specification (PUGS): Sea Ice Edge and Type version 1, Algorithm Theoretical Basis Document (ATBD): Sea Ice Edge and Type version 2";
     
     Assumes minimal change in ice type across a day so just use the first row for date information and apply to all rows
-    
-    ice_typeT2 (var): Ice type 
 
     Args:
         dF (data frame): original data frame
@@ -1255,12 +1118,7 @@ def getIceType(dF, iceTypePathT, mapProj, res=1, returnRaw=1):
     # Recently changed this. THe hosted data has monthly folders so could add a catch to try that if no file found
     iceTypePathFull = iceTypePathT+'/'+yearStr+'/'+monthStr+'/'
     print(iceTypePathFull)
-    #if (dF['year'].iloc[0]<2006):
-    #    iceTypePathFull = iceTypePathT+'/OSISAF/'+yearStr+'/'
-    #    
-    #else:
-    #    iceTypePathFull = iceTypePathT+'/OSISAF/'+yearStr+'/'+monthStr+'/'
-    #print(iceTypePathFull+'*_nh_*'+dateStr+'1200.nc')
+
 
     files = glob(iceTypePathFull+'*_nh_*'+dateStr+'1200.nc')
     f = Dataset(files[0], 'r')
@@ -1269,6 +1127,7 @@ def getIceType(dF, iceTypePathT, mapProj, res=1, returnRaw=1):
     lats = f.variables['lat'][::res, ::res]
     lons = f.variables['lon'][::res, ::res]
     ice_typeT = f.variables['ice_type'][0,::res, ::res]
+    
     # set multiyear ice and amiguous to 1, everything else to 0
     ice_typeT = np.where(ice_typeT>2.5, 1, 0)
 
@@ -1278,92 +1137,19 @@ def getIceType(dF, iceTypePathT, mapProj, res=1, returnRaw=1):
     
     ice_typeT2=ice_typeT.flatten()
 
-    #iceTypeGs=[]
     iceTypeGs=ma.masked_all((size(dF['freeboard'].values)))
     for x in range(size(dF['freeboard'].values)):
-        # Find nearest ice type
-        dist=sqrt((xpts_type-dF['xpts'].iloc[x])**2+(ypts_type-dF['ypts'].iloc[x])**2)
-        index_min = np.argmin(dist)
-        iceTypeGs[x]=ice_typeT2[index_min]
-        # This is waht I normally do but it's much slower!
-        # I checked and they gave the same answers
-        # iceTypeG2 = griddata((xpts_type, ypts_type), ice_typeT2, (dF['xpts'].iloc[x], dF['ypts'].iloc[x]), method='nearest') 
-        # print(iceTypeG)
-        # iceTypeGs.append(iceTypeG)
-    print('good')
-    dF['ice_type'] = pd.Series(iceTypeGs, index=dF.index)
-
-    if (returnRaw==1):
-        return dF, lats, lons, ice_typeT
-    else:
-        return dF
-
-def getIceTypeA(dF, iceTypePathT, mapProj, res=1, returnRaw=1):
-    """
-    Get ice type based on the AMSRE ice type product.
-    Available 
-    
-    Data from 2006 onwards is from OSI-SAF (Lavergene et al.)
-    Data prior to 2006 is produced through funding provided by the Copernicus CDR (Aaboe et al.,)
-    Product User Guide and Specification (PUGS): Sea Ice Edge and Type version 1, Algorithm Theoretical Basis Document (ATBD): Sea Ice Edge and Type version 2";
-    
-    Assumes minimal change in ice type across a day so just use the first row for date information and apply to all rows
-    
-    ice_typeT2 (var): Ice type 
-
-    Args:
-        dF (data frame): original data frame
-        mapProj (basemap instance): basemap map projection
-        res (int): every res number of points sampled along ice type array.
         
-    Returns:
-        dF (data frame): data frame including ice type column (1 = multiyear ice, 0 = everything else)
-
-    """
-
-    dayStr='%02d' %(dF['day'].iloc[0])
-    monthStr='%02d' %(dF['month'].iloc[0])
-    yearStr='%02d' %(dF['year'].iloc[0])
-    dateStr=yearStr+monthStr+dayStr
-
-    # Recently changed this. THe hosted data has monthly folders so could add a catch to try that if no file found
-    iceTypePathFull = iceTypePathT+'/'+yearStr+'/'+monthStr+'/'
-    print(iceTypePathFull)
-    #if (dF['year'].iloc[0]<2006):
-    #    iceTypePathFull = iceTypePathT+'/OSISAF/'+yearStr+'/'
-    #    
-    #else:
-    #    iceTypePathFull = iceTypePathT+'/OSISAF/'+yearStr+'/'+monthStr+'/'
-    #print(iceTypePathFull+'*_nh_*'+dateStr+'1200.nc')
-
-    files = glob(iceTypePathFull+'*_nh_*'+dateStr+'1200.nc')
-    f = Dataset(files[0], 'r')
-    print ('Ice type file path:', files[0])
-
-    lats = f.variables['lat'][::res, ::res]
-    lons = f.variables['lon'][::res, ::res]
-    ice_typeT = f.variables['ice_type'][0,::res, ::res]
-    # set multiyear ice and amiguous to 1, everything else to 0
-    ice_typeT = np.where(ice_typeT>2.5, 1, 0)
-
-    xpts_type, ypts_type = mapProj(lons, lats)
-    xpts_type=xpts_type.flatten()
-    ypts_type=ypts_type.flatten()
-    
-    ice_typeT2=ice_typeT.flatten()
-
-    #iceTypeGs=[]
-    iceTypeGs=ma.masked_all((size(dF['freeboard'].values)))
-    for x in range(size(dF['freeboard'].values)):
         # Find nearest ice type
         dist=sqrt((xpts_type-dF['xpts'].iloc[x])**2+(ypts_type-dF['ypts'].iloc[x])**2)
         index_min = np.argmin(dist)
         iceTypeGs[x]=ice_typeT2[index_min]
+        
         # This is waht I normally do but it's much slower!
         # I checked and they gave the same answers
         # iceTypeG2 = griddata((xpts_type, ypts_type), ice_typeT2, (dF['xpts'].iloc[x], dF['ypts'].iloc[x]), method='nearest') 
         # print(iceTypeG)
-        # iceTypeGs.append(iceTypeG)
+
     print('good')
     dF['ice_type'] = pd.Series(iceTypeGs, index=dF.index)
 
@@ -1372,24 +1158,54 @@ def getIceTypeA(dF, iceTypePathT, mapProj, res=1, returnRaw=1):
     else:
         return dF
 
-#@jit
+def getIceTypeRaw(iceTypePathT, mapProj, dayStr, monStr, yearStr, res=1):
+    """
+    Get ice type based on the OSI-SAF ice type product, 
+    extended back tot he SSMI period as part of the Copernicus Climate Change (C3S) service.
+    Thanks to Thomas Lavergne and Singe Aaboe 
+    
+    As in getIceType but returns data as the raw x, y, ice type arrays (not assigned to the dataframe)
+
+    """
+
+    dateStr=yearStr+monStr+dayStr
+
+    iceTypePathFull = iceTypePathT+'/'+yearStr+'/'+monStr+'/'
+    print(iceTypePathFull)
+   
+    files = glob(iceTypePathFull+'*_nh_*'+dateStr+'1200.nc')
+    f = Dataset(files[0], 'r')
+    print ('Ice type file path:', files[0])
+
+    lats = f.variables['lat'][::res, ::res]
+    lons = f.variables['lon'][::res, ::res]
+    ice_typeT = f.variables['ice_type'][0,::res, ::res]
+    
+    # set multiyear ice and amiguous to 1, everything else to 0
+    ice_typeT = np.where(ice_typeT>2.5, 1, 0)
+    ice_typeT = ma.masked_where(lats>88, ice_typeT)
+
+    xpts_type, ypts_type = mapProj(lons, lats)
+
+    return xpts_type, ypts_type, ice_typeT
+
 def getWarrenData(dF, outSnowVar, outDensityVar='None', modFactor=1):
     """
-    Assign Warren1999 snow dept/density climatology to dataframe
-
-    Added 
+    Assign Warren1999 snow dept/density climatology to dataframe 
 
     Args:
         dF (data frame): Pandas dataframe
         outSnowVar (string): name of Warren snow depth variable
         outDensityVar (string): name of Warren snow density variable
+        modFactor (float): snow depth modification factor over first-year ice
         
 
     Returns:
         dF (data frame): Pandas dataframe updated to include colocated Warren snow depth and density
         
     """
-     # 2   Sea of Okhotsk and Japan
+    
+    # 2   Sea of Okhotsk and Japan
     # 3   Bering Sea
     # 4   Hudson Bay
     # 5   Gulf of St. Lawrence
@@ -1460,20 +1276,20 @@ def getWarrenDataCPOM(dF, outSnowVar='W99mod5r', outDensityVar='W99r', modFactor
         dF (data frame): Pandas dataframe
         outSnowVar (string): name of Warren snow depth variable
         outDensityVar (string): name of Warren snow density variable
+        modFactor (float): snow depth modification factor over first-year ice
 
     Returns:
         dF (data frame): Pandas dataframe updated to include colocated Warren snow depth and density
         
     """
 
-    # Generate empty lists
+
     snowDepthW99s=ma.masked_all(size(dF['freeboard'].values))
     if (outDensityVar!='None'):
         snowDensityW99s=ma.masked_all(size(dF['freeboard'].values))
 
     # Loop over all freeboard values (rows)
     for x in range(size(dF['freeboard'].values)):
-        #print(x, dF['lon'].iloc[x], dF['lat'].iloc[x], dF['month'].iloc[x]-1)
        
         snowDepthDayW99T, snowDensityW99T=MonthlyMeanWarrenClimatology(dF['month'].iloc[x]-1)
         
@@ -1481,10 +1297,7 @@ def getWarrenDataCPOM(dF, outSnowVar='W99mod5r', outDensityVar='W99r', modFactor
             # If first year ice (should be zero but do less than 0.5 to be safe)
             #print('modify')
             if (dF['ice_type'].iloc[x]<0.5):
-                #print('FYI')
-                #print ('Unmodified snow:', snowDepthDayW99T)
                 snowDepthDayW99T=snowDepthDayW99T*modFactor
-                #print ('Modified snow:', snowDepthDayW99T)
 
 
         # Append values to list
@@ -1502,12 +1315,10 @@ def getWarrenDataCPOM(dF, outSnowVar='W99mod5r', outDensityVar='W99r', modFactor
 
 def MonthlyMeanWarrenClimatology(monthT):
     """
-    Get Warren1999 snow depth climatology
+    Get monthly/ice-type mean Warren1999 snow depth climatology, from CPOM
 
     Args:
-        lonT (var): longitude
-        latT (var): latitude
-        monthT (var): month with the index starting at 0
+        monthT (int): month of the year, with the index starting at 0
         
 
     Returns:
@@ -1519,19 +1330,10 @@ def MonthlyMeanWarrenClimatology(monthT):
     meanCentralArcticSnow = [26.7, 28.9, 31.6, 31.3, 32.6, 27.7, 3.4, 2.5, 8.4, 17.2, 21.4, 23.3]
     meanCentralArcticDensity = [287.5, 305.2, 315.4, 309.8, 321.0, 332.0, 358.8, 238.3, 236.0, 268.2, 280.0, 288.2]
 
-    #meanCentralArcticSnow = [27.1, 29.7, 32.4, 33.7, 34.4, 30.7, 6.6, 3.0, 11.2, 19.4, 23.0, 24.9]
-    #meanCentralArcticSWE = [8.0, 9.2, 10.3, 10.6, 11.0, 10.4, 2.4, 0.7, 2.7, 5.2, 6.6, 7.3]
 
     rho_s = meanCentralArcticDensity[monthT]
-
-    # Density in kg/m^3
-    #rho_s = 1000.*(swe/Hs)  
-    #print(ma.mean(rho_s))
-
-
     Hs = meanCentralArcticSnow[monthT]
     
-
     # Convert snow depth to meters
     Hs=Hs/100.
 
@@ -1639,8 +1441,6 @@ def getIS1FreeboardData(freeboardFileT, mapProj):
         mapProj (basemap instance): basemap map projection
     Returns:
         dF (var): Dataframe containing freeboard, year, month, day, lon, lat, x, y
-
-    I think the dates are indexed starting from 1 - i.e. month of 1 = January 
         
     """
     
@@ -1655,9 +1455,7 @@ def getIS1FreeboardData(freeboardFileT, mapProj):
     # Filter out these negative (NaN) values
     # NB: should we also filter out freeboards equal to zero?
     
-    #dF = dF[(dF['freeboard']>0)]
-    
-    # Set negative values to 0 like IS2
+    # Set negative values to 0 as in the ATL product
     dF[(dF['freeboard']<0)]=0
     
     # Reset row indexing
@@ -1673,137 +1471,14 @@ def getIS1FreeboardData(freeboardFileT, mapProj):
 
     return dF
 
-
-
-
-def haversine_np(lon1, lat1, lon2, lat2):
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
-
-    All args must be of equal length.    
-
-    Args:
-        lon1 (var): initial longitude
-        lat1 (var): initial latitude
-        lon2 (var): final longitude
-        lon2 (var): final longitude
-
-    Returns:
-        distance (var): great circle distance in kilometers
-
-
-    """
-    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
-
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-
-    a = np.sin(dlat/2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2.0)**2
-
-    c = 2 * np.arcsin(np.sqrt(a))
-    km = 6371 * c
-    return km
-
-
-
-def snowDistribution(snowDepthT, freeboardT, meanFreeboardT):
-    """
-    Snow distribution function - simplified version of what Nathan created for testing.
-    Written by Alek (summer 2018)
-
-    Args:
-        snowDepthT (var): along track snow depth (m)
-        freeboardT (var): along track freeboard (m)
-        meanFreeboardT (var): mean freebaord (m)
-
-    Returns:
-        snowDepthDist (var): along track snow depth distributed to higher resolution
-    """
-
-    #print ('mean freeboard section:', meanFreeboardT)
-
-    hs_thick_adj=0.
-    fb_cutoff = 0.69*100*snowDepthT +0.22*100*meanFreeboardT + 19.6
-    hs_thick = 1.03*snowDepthT*100 + 0.83 + hs_thick_adj
-    hs_thin = hs_thick * meanFreeboardT*100.0/fb_cutoff
-
-    if (freeboardT > fb_cutoff):
-        snowDepthDist = hs_thick
-    else:
-        snowDepthDist = hs_thin
-
-    return snowDepthDist/100.
-
-def get_region_mask(ancDataPath, mplot, xypts_return=0):
-	header = 300
-	datatype='uint8'
-	file_mask = ancDataPath+'/region_n.msk'
-    
-    #1 Non-regional ocean  
-    #2 Sea of Okhotsk 
-    #3 Bering Sea  
-    #4 Hudson Bay 
-    #5 Baffin Bay/Davis Strait/Labrador Sea    
-    #6 Greenland Sea   Bellingshausen 
-    #7 Kara and Barents Seas
-
-	#8 - Arctic Ocean
-	#9 - Canadian Archipelago
-	#10 - Gulf of St Lawrence
-	#11 - Land
-
-	fd = open(file_mask, 'rb')
-	region_mask = fromfile(file=fd, dtype=datatype)
-	region_mask = reshape(region_mask[header:], [448, 304])
-
-	if (xypts_return==1):
-		mask_latf = open(ancDataPath+'/psn25lats_v3.dat', 'rb')
-		mask_lonf = open(ancDataPath+'/psn25lons_v3.dat', 'rb')
-		lats_mask = reshape(fromfile(file=mask_latf, dtype='<i4')/100000., [448, 304])
-		lons_mask = reshape(fromfile(file=mask_lonf, dtype='<i4')/100000., [448, 304])
-
-		xpts, ypts = mplot(lons_mask, lats_mask)
-
-		return region_mask, xpts, ypts
-	else:
-		return region_mask
-
-def get_region_maskCAsnowIS(datapathT, mplot, xypts_return=0):
-	header = 300
-	datatype='uint8'
-	file_mask = datapathT+'/OTHER/region_n.msk'
-	
-	region_lonlat = [-140, -10, 76, 87]
-	fd = open(file_mask, 'rb')
-	region_mask = fromfile(file=fd, dtype=datatype)
-	region_mask = reshape(region_mask[header:], [448, 304])
-
-	mask_latf = open(datapathT+'/OTHER/psn25lats_v3.dat', 'rb')
-	mask_lonf = open(datapathT+'/OTHER/psn25lons_v3.dat', 'rb')
-	lats_mask = reshape(fromfile(file=mask_latf, dtype='<i4')/100000., [448, 304])
-	lons_mask = reshape(fromfile(file=mask_lonf, dtype='<i4')/100000., [448, 304])
-
-	region_maskCA=np.zeros((lons_mask.shape))
-	mask = where((lons_mask>region_lonlat[0]) & (lons_mask<region_lonlat[1]) & (lats_mask>region_lonlat[2]) & (lats_mask<region_lonlat[3])& (region_mask==8))
-	region_maskCA[mask]=1
-
-	if (xypts_return==1):
-
-		xpts, ypts = mplot(lons_mask, lats_mask)
-
-		return region_maskCA, xpts, ypts
-	else:
-		return region_maskCA
-
 #@jit
 def bindataN(x, y, z, xG, yG, binsize, retbin=True, retloc=False):
     """
     Place unevenly spaced 2D data on a grid by 2D binning (nearest
     neighbor interpolation).
 
-    MAKE SURE YOU ARE USING THE NATIVE PROJECTION OF THE 2D DATA 
-    SO THAT IT IS ORDERD CORRECTLY TO GENERATE THE MESHGRID BELOW.
+    NB: MAKE SURE YOU ARE USING THE NATIVE PROJECTION OF THE 2D DATA 
+    SO THAT IT IS ORDERD CORRECTLY TO GENERATE THE MESHGRID BELOW!
     
     Parameters
     ----------
@@ -1961,8 +1636,8 @@ def bindataSegWeighted(x, y, z, seg, xG, yG, binsize=0.01, retbin=True, retloc=F
         wherebin = wherebin.tolist()
 
     # fill in the grid.
-    for row in prange(nrow):
-        for col in prange(ncol):
+    for row in range(nrow):
+        for col in range(ncol):
             xc = xi[row, col]    # x coordinate.
             yc = yi[row, col]    # y coordinate.
 
@@ -1995,116 +1670,5 @@ def bindataSegWeighted(x, y, z, seg, xG, yG, binsize=0.01, retbin=True, retloc=F
         else:
             return grid
 
-def monLabels(month):
-    labels=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] 
-    return labels[month]
 
-def defGrid(m, dxRes=50000):
-    # took out the +1 to shorten array slightly
-    nx = int((m.xmax-m.xmin)/dxRes); ny = int((m.ymax-m.ymin)/dxRes)
-    gridStr=str(int(dxRes/1000))+'km'
-    lonsG, latsG, xptsG, yptsG = m.makegrid(nx, ny, returnxy=True)
-
-    return lonsG, latsG, xptsG, yptsG, nx, ny
-
-
-def read_icebridgeALL(dataPath, year, mask_hi=1, mask_nonarctic=1):
-    # Now using Pandas for this (see OIB notebook) which is a lot easier..
-    # Good to comapre with this more laborious approach
-    # Will add more funcs in due course
-    lats_total=[] 
-    lons_total=[]
-    thickness_total=[]
-    snow_thickness_total=[]
-    
-    files = glob(rawdatapath+'/ICEBRIDGE/ICEBRIDGE_HI/IDCSI4/'+str(year)+'.*/*.txt')
-    
-    for x in xrange(size(files)):
-        data = genfromtxt(files[x], delimiter=',', skip_header=1, dtype=str)
-        # data is a table-like structure (a numpy recarray) in which you can access columns and rows easily
-        lats = data[:, 0].astype(float)
-        lons = data[:, 1].astype(float)
-        thickness = data[:, 2].astype(float)
-        snow_thickness = data[:, 7].astype(float)
-        lats_total.extend(lats)
-        lons_total.extend(lons)
-        thickness_total.extend(thickness)
-        snow_thickness_total.extend(snow_thickness)
-
-    thickness_total=array(thickness_total)
-    snow_thickness_total=array(snow_thickness_total)
-    lats_total=array(lats_total)
-    lons_total=array(lons_total)
-
-    if (mask_hi==1):
-        good_data=where((thickness_total>=0.)&(thickness_total<=20.))
-        thickness_total = thickness_total[good_data]
-        snow_thickness_total=snow_thickness_total[good_data]
-        lats_total = lats_total[good_data]
-        lons_total = lons_total[good_data]
-    if (mask_nonarctic==1):
-        region_mask, xptsM, yptsM = get_region_mask(rawdatapath, mplot)
-        xptsIB, yptsIB = mplot(lons_total, lats_total)
-        region_maskR = griddatascipy((xptsM.flatten(), yptsM.flatten()),region_mask.flatten(), (xptsIB, yptsIB), method='nearest')
-        good_data = where((region_maskR==8))
-        lats_total = lats_total[good_data]
-        lons_total=lons_total[good_data]
-        thickness_total=thickness_total[good_data]
-        snow_thickness_total=snow_thickness_total[good_data]
-
-    xpts,ypts = mplot(lons_total, lats_total)
-
-    return xpts,ypts, lats_total, lons_total, thickness_total, snow_thickness_total
-
-
-def mapll(alat, along):
-    # AUthor: Nathan
-    # Converts lat and lon into x,y
-
-
-    # Conversion constant from degrees to radians = 57.29577951.      
-    cdr=57.29577951 
-    # Radius of Earth = 6378.273 km (Hughes Ellipsoid).  
-    re=6378.273 
-    # Eccentricity of the Earth   e**2=0.006693883 (Hughes Ellipsoid). 
-    e2=0.006693883 
-    e=math.sqrt(e2) 
-
-    pi=3.14159265359 
-    # Standard Parallel - Latitude with No distortion =  +_ 70 degrees 
-    slat=70.0 
-
-    #**** Degree to Radiants :
-    d2r=3.14159265359/180.
-
-    if alat > 0.0: # Northern Hemisphere
-        xlam=-45.
-        sn=1.0
-    else:
-        xlam=0.
-        sn=-1.0
-
-
-    #     Compute X and Y in grid coordinates. 
-    alat=sn*alat 
-    along = sn*along
-
-
-    rlat = alat
-
-
-    t0=math.tan((pi/4.0)-(rlat/(2.0*cdr)))/((1.0-e*math.sin(rlat*d2r)) /  (1.0+e*math.sin(rlat*d2r)))**(e/2.0) 
-    rlat = slat
-    t1=math.tan((pi/4.0)-(rlat/(2.0*cdr)))/((1.0-e*math.sin(rlat*d2r))/  (1.0+e*math.sin(rlat*d2r)))**(e/2.0) 
-    cm=math.cos(slat*d2r)/math.sqrt(1.0-e2*(math.sin(slat*d2r)**2)) 
-    rho=re*cm*t0/t1 
-    x=rho*sn*math.sin((along-xlam)*d2r) 
-    y=-1.0*rho*sn*math.cos((along-xlam)*d2r) 
-
-
-
-
-    if alat >= 89.995:
-        x=0.0
-        y=0.0
 

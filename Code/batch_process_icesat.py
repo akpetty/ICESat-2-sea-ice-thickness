@@ -1,10 +1,10 @@
 """ BatchProcessIS2shot.py
 	
-	Processing sea ice thickness with ICESat-2 freeboards
+	Processing sea ice thickness with ICESat freeboards
 	Initial code written by Alek Petty (01/06/2019)
 	
 	Input:
-		ICESat-2 freeboards, NESOSIM snow depths/densities, OSISAF ice type
+		ICESat freeboards, NESOSIM snow depths/densities, OSISAF ice type
 
 	Output:
 		Ice thickness using various snow depth assumptions.
@@ -15,12 +15,6 @@
 		netCDF4
 		matplotlib
 		basemap
-
-	GSFC: W99mod5 snow depth/density, 915 kg/m3 ice density
-	CPOM: regional mean W99mod5, 882, 917 kg/m3 ice density
-	JPL: W99mod5 (bus using ice type fraction), 
-	AWI: W99mod5, 882, 917 kg/m3 ice density
-	Petty: NESOSIM distributed, 899 MYI, 916 
 
 		More information on installation is given in the README file.
 
@@ -57,27 +51,23 @@ import concurrent.futures
 def main(freeboardFile):
 	""" Main ICESat-1 processing module 
 	
-	Convert the ATL10 shot freeboard data to ice thickness using various snow loading input estimates
+	Convert the ICESat freeboard data to ice thickness using various snow loading input estimates
 	
-	# add distribute modified Warren snow depths.
-	# add Ron snow depths. 
 	
 	Args:
 		fileT (str): the ATL10 file path
 
 	"""
 
-	
 	outStr=freeboardFile.split("/")[-1][:-3]
 
-	regionflags=1
-	icetype=0
-	warrensnow=1
-	modwarrensnow5=0
-	nesosim=1
-	nesosimdisttributed=1
-	savedata=0
-	saveNetCDFX=1
+	regionflags=True
+	icetype=False
+	warrensnow=True
+	modwarrensnow5=False
+	nesosim=True
+	nesosimdisttributed=True
+	saveNetCDFX=True
 	
 	
 	# Map projection
@@ -104,7 +94,7 @@ def main(freeboardFile):
 	
 
 	# ----- Region flags -------
-	if (regionflags==1):
+	if regionflags:
 		print ('Assign NSIDC region mask...')
 		dF=cF.assignRegionMask(dF, mapProj, ancDataPath=ancDataPath)
 		#print(dF.head(3)) 
@@ -112,7 +102,7 @@ def main(freeboardFile):
 
 	
 	# ----- Get colocated ice type data -------
-	if (icetype==1):
+	if icetype:
 		start = time.time()
 		print ('Processing ice type data...')
 		dF = cF.getIceType(dF, iceTypePath, mapProj, res=4, returnRaw=0)
@@ -120,7 +110,7 @@ def main(freeboardFile):
 		#dF.head(3)
 	
 	#------- Get Warren snow depths -----------
-	if (warrensnow==1):
+	if warrensnow:
 		start = time.time()
 		print ('Processing Warren snow depths...')
 		dF = cF.getWarrenData(dF, outSnowVar='snow_depth_W99', outDensityVar='snow_density_W99')
@@ -128,7 +118,7 @@ def main(freeboardFile):
 		#dF.head(3)
 	
 	#------- Get modified (50%) Warren snow depths -----------
-	if (modwarrensnow5==1):
+	if modwarrensnow5:
 		start = time.time()
 		print ('Processing Warren mod5 snow depths...')
 		dF = cF.getWarrenData(dF, outSnowVar='snow_depth_W99mod5', outDensityVar='None', modFactor=0.5)
@@ -136,7 +126,7 @@ def main(freeboardFile):
 		#dF.head(3)
 
 	#------- Get NESOSIM snow depths -----------
-	if (nesosim==1):
+	if nesosim:
 		# ----- Get dates and coincident NESOSIM file -------
 		print ('Grabbing NESOSIM file and dates...')
 		dateStr= cF.getDate(dF['year'].iloc[0], dF['month'].iloc[0], dF['day'].iloc[0])
@@ -152,7 +142,7 @@ def main(freeboardFile):
 
 	#------- Get distributed NESOSIM snow depths -----------
 
-	if (nesosimdisttributed==1):
+	if nesosimdisttributed:
 		start = time.time()
 		print ('Processing distributed NESOSIM snow depths...')
 		dF = cF.distributeSnow(dF, inputSnowDepth='snow_depth_N', outSnowVar='snow_depth_NPdist', consIterations=11, gridSize=100000)
@@ -161,39 +151,27 @@ def main(freeboardFile):
 		
 	#-------Thickness conversion-----------
 	print ('Processing thickness conversions...')
-	if (warrensnow==1):
-		#start = time.time()
-		#print ('Converting freeboards to thickness...')
+	if warrensnow:
+
 		# Convert freeboard to thickness using Warren data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99', rhoi=1)
-		#dF.head(3)
 
-	if (modwarrensnow5==1):	
+	if modwarrensnow5:	
 		# Convert freeboard to thickness using modified Warren data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_W99mod5', snowDensityVar='snow_density_W99', outVar='ice_thickness_W99mod5', rhoi=1)
-		#dF.head(3)
 
-	if (nesosim==1):
-		#print ('Converting freeboards to thickness 2...')
+	if nesosim:
 		# Convert freeboard to thickness using NESOSIM data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_N', snowDensityVar='snow_density_N', outVar='ice_thickness_N', rhoi=1)
-		#dF.head(3)
 
-	if (nesosimdisttributed==1):
-		#print ('Converting freeboards to thickness 3..')
+	if nesosimdisttributed:
 		# Convert freeboard to thickness using distributed NESOSIM data
 		dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_NPdist', snowDensityVar='snow_density_N', outVar='ice_thickness_NPdist', rhoi=1)
-		#dF.head(3)
-		#dF = cF.getSnowandConverttoThickness(dF, snowDepthVar='snow_depth_NPdistUC', snowDensityVar='snow_density_N', outVar='ice_thickness_NPdistUC')
-		#dF.head(3)
+
 
 	print ('Processed thickness conversions')
-	#-------Uncertainty calculation-----------
-	
-	
-	# Convert freeboard to thickness using Nathan's distributed NESOSIM data
-	#dF = getSnowandsConverttoThickness(dF, snowDepthVar='snowDepthNKdist', snowDensityVar='snowDensityNK', outVar='iceThicknessNKdist')
-	#print(dF.head(4))
+
+
 	#-------Diagnostic plots-----------
 	cF.plotMap4(dF, mapProj, figPath, dateStr+'_F'+outStr+'W99shot', vars=['freeboard', 'snow_depth_W99', 'snow_density_W99', 'ice_thickness_W99'])
 	#cF.plotMap4(dF, mapProj, figPath, dateStr+'_F'+str(fileNum)+'W99mod', vars=['freeboard', 'snowDepthW99mod5', 'snowDensityW99mod5', 'iceThicknessW99mod5'])
@@ -204,12 +182,8 @@ def main(freeboardFile):
 	#plotMap4(dF, mapProj, figPath, dateStr+'_F'+str(fileNum)+'NKdist', vars=['freeboard', 'snowDepthNKdist', 'snowDensityNK', 'iceThicknessNKdist'])
 
 	#-------Output-----------
-	if (savedata==1):
-		
-		print ('Saving data file to:', dataOutPath+'IS2'+outStr+campaignStr)
-		dF.to_pickle(dataOutPath+'IS1'+outStr+campaignStr)
-		print ('Saved data')
-	if (saveNetCDFX==1):
+
+	if saveNetCDFX:
 		
 		print ('Saving netCDF (xarray) data file to:', dataOutPath+'IS1'+outStr+campaignStr)
 		dFX=xr.Dataset.from_dataframe(dF)
@@ -224,13 +198,14 @@ if __name__ == '__main__':
 	figPathM='/cooler/scratch1/aapetty/Figures/IS1/'
 	ancDataPath='../AncData/'
 	
-	#global campaignStr
+	# ICESat campaign
 	campaignStr='FM08'
+
+	# Processing run
 	runStr='run3'
 
 	icesatFreeboardPath='/cooler/scratch1/aapetty/Data/ICESAT/freeboard/'
 
-	#global figPath, dataOutPath
 	figPath=figPathM+runStr+'/'+campaignStr+'/'
 	dataOutPath=dataOutPathM+runStr+'/'+campaignStr+'/raw/'
 	if not os.path.exists(dataOutPath):

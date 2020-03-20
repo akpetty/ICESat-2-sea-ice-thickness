@@ -1,6 +1,7 @@
 name: py36envB
 dependencies:
   - python=3.6
+  - gdal
   - numpy
   - pandas
   - xarray
@@ -10,3 +11,5 @@ dependencies:
   - matplotlib
   - h5py
   - pyproj
+  - scikit-image 
+  - scikit-learn

@@ -30,9 +30,9 @@ def getIS2(savePathT, outStringT, variable):
     dIS2 = xr.open_dataset(savePathT+'IS2ATL10_'+outStringT+'.nc')
 
     # Get NESOSIM coordinates (constant with time)
-    thicknessIS2 = array(dIS2[variable])
-    latsIS2 = array(dIS2.latitude)
-    lonsIS2 = array(dIS2.longitude)
+    thicknessIS2 = dIS2[variable].values
+    latsIS2 = dIS2.latitude.values
+    lonsIS2 = dIS2.longitude.values
 
     xptsT, yptsT = mapProj(lonsIS2, latsIS2)
     return xptsT, yptsT, thicknessIS2 
@@ -52,15 +52,15 @@ smoothingWindow=200
 resolution=25.
 beamStr='bnum1'
 snowVar='NPdist'
-versionStr='v22'
+versionStr='v4'
 segment=1
 
 
 variables=['freeboard', 'snow_depth', 'ice_thickness', 'ice_thickness_unc', 'snow_density','ice_type', 'mean_day_of_month', 'num_binned_days']
 cbarLabels=['freeboard (m)', 'snow depth (m)', 'ice thickness (m)', 'uncertainity (m)', r'snow density (kg/m$^3$)','ice type', 'mean day of month', 'num valid days in month']
-mStr='Mar'
+mStr='Apr'
 yearStr='2019'
-labelStr=runStr+'-'+beamStr+'-'+yearStr+mStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr
+labelStr=runStr+'-'+beamStr+'-'+mStr+yearStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr
 # DATE INFO
 griddedVar=[]
 
@@ -69,6 +69,7 @@ for variableT in variables:
 	xptsIS2, yptsIS2,griddedVarT = getIS2(savePath, labelStr, variableT)
 	griddedVar.append(griddedVarT)
 
+# mask the number of days less than 1
 griddedVar[7]=ma.masked_where(griddedVar[7]<1, griddedVar[7])
 
 cbarx=[0.03, 0.276, 0.525, 0.77, 0.03, 0.276, 0.525, 0.77]
