@@ -11,7 +11,7 @@ v1.0: This initial repository was used to processes ICESat-2 (and also ICESat) t
 
 ### Getting Started
 
-If you are familiar with using conda to manage your Python environment you should be able to just import the conda environment included in this repository as:
+This code was originally developed on a linux server and has not been tested on other operating systems (I'm hoping to get round to that soon). If you are running this on linux and you are familiar with using conda to manage your Python environment you should be able to just import the conda environment included in this repository as:
 ```
 conda env create -n py36envX -f environment.yml
 ```
@@ -19,18 +19,26 @@ then simply activate this environment to work in (to avoid using you own Python 
 ```
 source activate py36envX
 ```
-A requirements.txt file is also included for installing with pip, although this has not been tested extensively yet.
+In an effort to provide an environment file that is less build dependent and might work on any os, I also include a more basic environment file (just specifies the main libraries needed and not their versions etc). This can be used as:
+```
+conda env create -n py36envB -f environment_basic.yml
+```
+then simply activate this environment to work in (to avoid using you own Python environment which wil likely have dependency issues)
+```
+source activate py36envB
+```
+Alternatively, a requirements.txt file is also included for installing with pip, although this has not been tested extensively yet.
 
 
 ### Code layout
 
 The ```/Code/``` folder contains the primary scripts to process ATL10 freeboards (and also original ICESat freeboards) into sea ice thickness. 
 
-The ```batch_process_icesat2.py``` and ```batch_process_icesat.py``` scripts link to modules contained in ```common_functions.py``` that read in ATL10 data, assing this to a Pandas dataframe, read in other relevant datasets and finally estimate sea ice thickness. THe data are saved as netcdf files using xarray to enable the use of Dask/xarray to read in and analyze these large files in parralel.
+The ```batch_process_icesat2.py``` and ```batch_process_icesat.py``` scripts link to modules contained in ```common_functions.py``` that read in freeboard data, assign this to a Pandas dataframe, read in other relevant datasets and finally estimate sea ice thickness and its uncertainties. THe data are saved as netcdf files using xarray to enable the use of Dask/xarray to read in and analyze these large data files in parralel.
 
-Also included are some demo plotting scripts:
+Also included are some plotting scripts:
 ```/Code/Plotting/``` 
-which can be used to generate some of the figures included in Petty et al., (2020). 
+which can be used to generate most of the figures included in Petty et al., (2020). 
 
 The basic flow chart of this sea ice processing approach is shown in the flowchart below and is explained in more detail in Petty et al., (2020).
 
