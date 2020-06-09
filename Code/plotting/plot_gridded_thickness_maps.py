@@ -54,7 +54,7 @@ beamStr='bnum1'
 dayStr='*'
 #dayStr=str(day)
 snowVar='NPdist'
-versionStr='v2'
+versionStr='vf'
 segment=1
 
 
@@ -71,7 +71,7 @@ for x in range(size(years)):
 	yearStr=str(years[x])
 	dateStrs.append(monLabel+' '+yearStr)
 
-	labelStr=runStr+'-'+beamStr+'-'+yearStr+monLabel+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr
+	labelStr=runStr+'-'+beamStr+'-'+monLabel+yearStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr
 
 	print(labelStr)
 	xptsIS2, yptsIS2,ice_thicknessIS2 = getIS2(savePath, labelStr)

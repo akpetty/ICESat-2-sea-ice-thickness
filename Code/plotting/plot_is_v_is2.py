@@ -54,10 +54,10 @@ yearStr=str(year)
 dayStr='*'
 
 segment=1
-versionStrIS2='v1'
+versionStrIS2='vf'
 campaignStrIS2='FM19'
 
-labelStr=runStr+'-'+beamStr+'-'+yearStr+monLabel+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStrIS2
+labelStr=runStr+'-'+beamStr+'-'+monLabel+yearStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStrIS2
 
 
 
@@ -65,7 +65,7 @@ xptsIS2, yptsIS2,_, _,ice_thicknessIS2m1 = cF.getIS2gridded(savePathIS2, labelSt
 
 month=3
 monLabel=cF.monLabels(month-1)
-labelStr=runStr+'-'+beamStr+'-'+yearStr+monLabel+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStrIS2
+labelStr=runStr+'-'+beamStr+'-'+monLabel+yearStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStrIS2
 
 _, _,lonsIS2, latsIS2,ice_thicknessIS2m2 = cF.getIS2gridded(savePathIS2, labelStr, mapProj, poleHole=85.5)
 
@@ -133,10 +133,10 @@ mapProj.fillcontinents(color='0.9',lake_color='grey', zorder=3)
 #cax2 = fig.add_axes([0.28, 0.12, 0.2, 0.035])
 #cbar2 = colorbar(im2,cax=cax2, orientation='horizontal', extend='both', use_gridspec=True)
 #cbar2.set_label('CS2 thickness (m)', labelpad=3)
-ax2.annotate('(g) IS-2 '+campaignStrIS2, xy=(0.98, 0.935), xycoords='axes fraction', verticalalignment='bottom', horizontalalignment='right',color='k')
+ax2.annotate('(g) IS-2 '+campaignStrIS2, xy=(0.96, 0.93), backgroundcolor='0.9', xycoords='axes fraction', verticalalignment='bottom', horizontalalignment='right',color='k', zorder=11)
 
 meanP=str(np.around(ma.mean(ice_thicknessIS2), decimals=2))
-ax2.annotate('Mean:'+meanP+' m', xy=(0.98, 0.02), xycoords='axes fraction', verticalalignment='bottom', horizontalalignment='right',color='k')
+ax2.annotate('Mean:'+meanP+' m', xy=(0.96, 0.02), xycoords='axes fraction', verticalalignment='bottom', horizontalalignment='right',color='k', zorder=11)
 
 
 cax1 = fig.add_axes([0.1, 0.12, 0.3, 0.035])
@@ -163,11 +163,11 @@ cax3 = fig.add_axes([0.63, 0.12, 0.3, 0.035])
 cbar3 = colorbar(im3,cax=cax3, orientation='horizontal', extend='both', use_gridspec=True)
 cbar3.set_label('difference (m)', labelpad=3)
 cbar3.set_ticks(np.arange(-2, 2.1, 1))
-ax3.annotate('(h) '+campaignStrIS2+' - FM08', xy=(0.98, 0.935), xycoords='axes fraction', verticalalignment='bottom', horizontalalignment='right',color='k')
+ax3.annotate('(h) '+campaignStrIS2+' - FM08', xy=(0.96, 0.93), backgroundcolor='0.9', xycoords='axes fraction', verticalalignment='bottom', horizontalalignment='right',color='k', zorder=11)
 
 meanP=str(np.around(ma.mean(ice_thicknessIS2)-ma.mean(ice_thicknessIS1), decimals=2))
 meanP2=str(np.around(ma.mean((ice_thicknessIS2)-ma.mean(ice_thicknessIS1))/ma.mean(ice_thicknessIS1)*100., decimals=0))
-ax3.annotate('difference:'+meanP+' m ('+meanP2+'%)', xy=(0.98, 0.02), xycoords='axes fraction', verticalalignment='bottom', horizontalalignment='right',color='k')
+ax3.annotate('diff:'+meanP+' m ('+meanP2+'%)', xy=(0.96, 0.03), backgroundcolor='w', xycoords='axes fraction', verticalalignment='bottom', horizontalalignment='right',color='k', zorder=11)
 
 
 fig.savefig(figPath+'/thicknessComp_'+runStr+campaignStr+campaignStrIS2+'IS2IS2'+versionStr+versionStrIS2+'v2.png', dpi=300)

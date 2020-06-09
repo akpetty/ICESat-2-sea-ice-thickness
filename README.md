@@ -64,15 +64,13 @@ We also utilize the NSIDC regional mask of the Arctic Ocean and its peripheral s
 
 ## Derived data
 
-Data are in the process of being provided on the NSIDC. For now just the gridded data are available on the ICESat-2 project page: PROVIDE LINK. The plan is to provide this routinely for all future winter seasons (just for the months of October through to April when we have higher confidence of the snow loading and reduced likelihood of surface melt complexity).
+Data are in the process of being provided on the NSIDC. For now just the gridded data are available on the ICESat-2 project page: https://icesat-2.gsfc.nasa.gov/sea-ice-thickness-data. The plan is to provide this routinely for all future winter seasons (just for the months of October through to April when we have higher confidence of the snow loading and reduced likelihood of surface melt complexity).
 
 #### Along track data
 
 A single NetCDF file is provided for each ATL10 granule covering the period October 14th 2018 to April 30th 2019. These datafiles include sea ice thickness and several other variables of expected interest to the user (snow depth/density, uncertainity etc).
 
-As the data is provided in NetCDF format it can be easily read in with xarray. For one file this command is:
-
-To read multiple along-track datafiles and store them as a dask xarray dataset we can use the following command: 
+As the data is provided in NetCDF format it can be easily read in with xarray or other python/netcdf libraries.
 
 
 #### Gridded data
@@ -86,6 +84,5 @@ An example monthly gridded sea ice thickness dataset is shown below.
 
 ## References
 
-Petty, A. A., N. T. Kurtz, R. Kwok, T. Markus, T. A. Neumann, Winter Arctic sea ice thickness from ICESat-2 freeboards (JGR Oceans)
-
+Petty, A. A., N. T. Kurtz, R. Kwok, T. Markus, T. A. Neumann (2020), Winter Arctic sea ice thickness from ICESat‐2 freeboards, Journal of Geophysical Research: Oceans, 125, e2019JC015764. doi:10.1029/2019JC015764
 

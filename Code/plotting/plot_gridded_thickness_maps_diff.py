@@ -39,19 +39,19 @@ def getIS2(savePathT, outStringT):
 
 
 relStr='rel002'
-runStr='run10'
+runStr='run12'
 
 baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
 figPath='/cooler/scratch1/aapetty/Figures/IS2/'+relStr+'/'+runStr+'/Maps/'
 savePath=baseDataPath+'/'+relStr+'/'+runStr+'/products/'
-smoothingWindow=400
+smoothingWindow=200
 resolution=25.
 beamStr='bnum1'
 dayStr='*'
 #dayStr=str(day)
 snowVar='NPdist'
 segment=1
-versionStr='vInt8'
+versionStr='vf'
 
 
 years=[2018, 2018, 2019, 2019, 2019, 2019]
@@ -65,7 +65,7 @@ for x in range(size(years)):
 	yearStr=str(years[x])
 	dateStrs.append(monLabel+' '+yearStr)
 
-	labelStr=runStr+'-'+beamStr+'-'+yearStr+monLabel+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr
+	labelStr=runStr+'-'+beamStr+'-'+monLabel+yearStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr
 
 	print(labelStr)
 	xptsIS2, yptsIS2,ice_thicknessIS2 = getIS2(savePath, labelStr)

@@ -58,8 +58,8 @@ segment=1
 
 variables=['freeboard', 'snow_depth', 'ice_thickness', 'ice_thickness_unc', 'snow_density','ice_type', 'mean_day_of_month', 'num_binned_days']
 cbarLabels=['freeboard (m)', 'snow depth (m)', 'ice thickness (m)', 'uncertainity (m)', r'snow density (kg/m$^3$)','ice type', 'mean day of month', 'num valid days in month']
-mStr='Apr'
-yearStr='2019'
+mStr='Nov'
+yearStr='2018'
 labelStr=runStr+'-'+beamStr+'-'+mStr+yearStr+snowVar+beamStr+'W'+str(smoothingWindow)+'_'+str(resolution)+'km_seg'+str(segment)+versionStr
 # DATE INFO
 griddedVar=[]

@@ -30,7 +30,7 @@ figPath='/cooler/scratch1/aapetty/Figures/IS2/'+releaseStr+'/'+runStr+'/'
 baseDataPath='/cooler/scratch1/aapetty/DataOutput/IS2/'
 dataPath=baseDataPath+'/'+releaseStr+'/'+runStr+'/raw/'
 
-example=1
+example=2
 #---Kara Sea FYI
 if (example==1):
 	beam='bnum1'
@@ -183,13 +183,14 @@ for ax in axs.flatten():
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.xaxis.set_ticks_position('bottom')
+    ax.set_xlim([0, 1000])
     ax.yaxis.set_ticks_position('left')
     ax.grid(axis='both', linestyle='--')
 
 ax1.annotate(titleStr, xy=(0.01, 1.01), xycoords='axes fraction', horizontalalignment='middle', verticalalignment='bottom')
 
 subplots_adjust(left = 0.07, right = 0.98, bottom=0.07, top = 0.96, hspace=0.18)
-plt.savefig(figPath+'/ts4'+labelStr+runStr+'_F'+str(fNum)+'eg'+str(example)+'shotDatav3.png', dpi=500)
+plt.savefig(figPath+'/ts4'+labelStr+runStr+'_F'+str(fNum)+'eg'+str(example)+'shotDatav4.png', dpi=500)
 #plt.savefig(figPathM+'/ts4'+campaignStr+'_F'+str(fileNum)+'shotData.pdf')
 #plt.savefig(figPathM+'/ts3'+labelStr+runStr+'_F'+str(fNum)+'shotData.png', dpi=500)
 #fig.show()

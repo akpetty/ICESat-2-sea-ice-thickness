@@ -824,6 +824,10 @@ def distributeSnowKwok(dF, inputSnowDepth='snowDepthN', outSnowVar='snowDepthKdi
 def sigmoidFunc(x):
     return 1./(1+exp(-5*(x-0.7)))
 
+def monLabels(month):
+    labels=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] 
+    return labels[month]
+    
 #@jit
 def gridNESOSIMtoFreeboard(dF, mapProj, fileSnow, dateStr, outSnowVar='snowDepthN', outDensityVar='snowDensityN', returnMap=0):
     """

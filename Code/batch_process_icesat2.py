@@ -1,7 +1,7 @@
 """ batch_process_icesat2.py
 	
 	Processing sea ice thickness with ICESat-2 freeboards
-	Initial code written by Alek Petty (01/06/2019)
+	Initial code written by Alek Petty (01/06/2020)
 	
 	Input:
 		ICESat-2 ATL10 freeboards
@@ -25,7 +25,7 @@
 	More information on installation is given in the README file.
 
 	Update history:
-		01/06/2020: Version 1.
+		06/06/2020: Version 1.
     
 """
 
@@ -285,13 +285,16 @@ def main(fileT, beamNum):
 
 if __name__ == '__main__':
 	
-	iceTypePath='/cooler/scratch1/aapetty/Data/ICETYPE/OSISAF/'
-	snowPath='/cooler/scratch1/aapetty/Data/NESOSIM/OSISAFsig150_ERAI_sf_SICCDR_Rhovariable_IC4_DYN1_WP1_LL1_WPF5.8e-07_WPT5_LLF2.9e-07-100kmv56/final/'
-	dataOutPathM='/cooler/scratch1/aapetty/DataOutput/IS2/'
-	figPathM='/cooler/scratch1/aapetty/Figures/IS2/'
+	# Input relevant file paths here...
+	iceTypePath=''
+	snowPath=''
+	dataOutPathM=''
+	figPathM=''
 	ancDataPath='../AncData/'
 	
-	releaseStr='rel002'
+	# ATL10 release
+	releaseStr='rel003'
+	# our own run string label
 	runStr='run13'
 
 	ATL10path='/cooler/I2-ASAS/'+releaseStr+'/ATL10-01/'
@@ -305,7 +308,7 @@ if __name__ == '__main__':
 		os.makedirs(figPath)
 	
 	#The -01 is for Northern Hemisphere datafiles (-02 is for Southern Hemisphere)
-	ATL10files0 = glob(ATL10path+'/ATL10-01_2018*.h5')
+	ATL10files0 = glob(ATL10path+'/ATL10-01_201811*.h5')
 	ATL10files1 = glob(ATL10path+'/ATL10-01_201901*.h5')
 	ATL10files2 = glob(ATL10path+'/ATL10-01_201902*.h5')
 	ATL10files3 = glob(ATL10path+'/ATL10-01_201903*.h5')
@@ -321,18 +324,19 @@ if __name__ == '__main__':
 	beamNums=[1, 2, 3, 4, 5, 6]
 
 	# If you don't want to use concurrent futures and just run over one cpu then use this code
-	for ATL10file in ATL10files:
-		main(ATL10file, beamNums[0])
+	#for ATL10file in ATL10files:
+	#	main(ATL10file, beamNums[0])
 	
-	#with concurrent.futures.ProcessPoolExecutor(max_workers=40) as executor:
+	# Use concurrent futures to run code over multiple CPUs (assigning a given ATL10 granule to a given worker)
+	with concurrent.futures.ProcessPoolExecutor(max_workers=40) as executor:
 
 		# args=((campaign, beam) for beam in beams)
 		# print(args)
 		# itertools.repeat to add a fixed argument
 		# Not very elegant but whatever..d
-		#result1=executor.map(main, ATL10files, repeat(beamNums[0]))
-		#result2=executor.map(main, ATL10files, repeat(beamNums[2]))
-		#result3=executor.map(main, ATL10files, repeat(beamNums[4]))
+		result1=executor.map(main, ATL10files, repeat(beamNums[0]))
+		result2=executor.map(main, ATL10files, repeat(beamNums[2]))
+		result3=executor.map(main, ATL10files, repeat(beamNums[4]))
 		#result4=executor.map(main, ATL10files, repeat(beamNums[1]))
 		#result5=executor.map(main, ATL10files, repeat(beamNums[3]))
 		#result6=executor.map(main, ATL10files, repeat(beamNums[5]))

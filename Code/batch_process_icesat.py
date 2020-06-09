@@ -1,7 +1,7 @@
-""" BatchProcessIS2shot.py
+""" batch_process_icesat.py
 	
 	Processing sea ice thickness with ICESat freeboards
-	Initial code written by Alek Petty (01/06/2019)
+	Initial code written by Alek Petty (01/06/2020)
 	
 	Input:
 		ICESat freeboards, NESOSIM snow depths/densities, OSISAF ice type
@@ -19,7 +19,7 @@
 		More information on installation is given in the README file.
 
 	Update history:
-		01/06/2019: Version 1.
+		01/06/2020: Version 1.
     
 """
 
@@ -44,8 +44,6 @@ import common_functions as cF
 from itertools import repeat, product
 import concurrent.futures
 
-#import multiprocessing
-#from numba import jit, prange
 
 
 def main(freeboardFile):
@@ -53,10 +51,8 @@ def main(freeboardFile):
 	
 	Convert the ICESat freeboard data to ice thickness using various snow loading input estimates
 	
-	
 	Args:
 		fileT (str): the ATL10 file path
-
 	"""
 
 	outStr=freeboardFile.split("/")[-1][:-3]
@@ -68,7 +64,6 @@ def main(freeboardFile):
 	nesosim=True
 	nesosimdisttributed=True
 	saveNetCDFX=True
-	
 	
 	# Map projection
 	mapProj = Basemap(projection='npstere',boundinglat=55,lon_0=0, resolution='l' , round=False)
@@ -191,20 +186,20 @@ def main(freeboardFile):
 
 if __name__ == '__main__':
 	
-	iceTypePath='/cooler/scratch1/aapetty/Data/ICETYPE/OSISAF/'
-	#snowPath='/cooler/scratch1/aapetty/Data/NESOSIM/OSISAFsig150_ERAI_sf_SICCDR_Rhovariable_IC3_DYN1_WP1_LL1_WPF5.8e-07_WPT5_LLF2.9e-07-100kmnrt3/final/'
-	snowPath='/cooler/scratch1/aapetty/Data/NESOSIM/NSIDCv3_ERAI_sf_SICbt_Rhovariable_IC1_DYN1_WP1_LL1_WPF5.8e-07_WPT5_LLF2.9e-07-100kmBSThresh/'
-	dataOutPathM='/cooler/scratch1/aapetty/DataOutput/IS1/'
-	figPathM='/cooler/scratch1/aapetty/Figures/IS1/'
+	# Input relevant file paths here...
+	iceTypePath=''
+	snowPath=''
+	dataOutPathM=''
+	figPathM=''
 	ancDataPath='../AncData/'
 	
 	# ICESat campaign
 	campaignStr='FM08'
 
-	# Processing run
+	# Processing run label
 	runStr='run3'
 
-	icesatFreeboardPath='/cooler/scratch1/aapetty/Data/ICESAT/freeboard/'
+	icesatFreeboardPath=''
 
 	figPath=figPathM+runStr+'/'+campaignStr+'/'
 	dataOutPath=dataOutPathM+runStr+'/'+campaignStr+'/raw/'
@@ -217,9 +212,10 @@ if __name__ == '__main__':
 	print('IS1 campaign season:',campaignStr)
 	print('Number of freeboard files: '+str(size(freeboardFiles)))
 
-
+	# If you don't want to use concurrent futures and just run over one cpu then uncomment loop over all files
 	#main(freeboardFiles[0])
-
+	
+	# Use concurrent futures to run code over multiple CPUs (assigning a given ATL10 granule to a given worker)
 	with concurrent.futures.ProcessPoolExecutor(max_workers=40) as executor:
 		result1=executor.map(main, freeboardFiles)
 
